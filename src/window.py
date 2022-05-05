@@ -15,17 +15,33 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from gi.repository import Gtk
+import gi
+gi.require_version('GtkSource', '5')
+from gi.repository import Gtk, GObject, GtkSource, Gio
 
 
 @Gtk.Template(resource_path='/com/github/molnarandris/texwriter/window.ui')
 class TexwriterWindow(Gtk.ApplicationWindow):
     __gtype_name__ = 'TexwriterWindow'
 
-    label = Gtk.Template.Child()
+    GObject.type_register(GtkSource.View)
+    paned = Gtk.Template.Child()
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+
+        # Save and restore window geometry
+        settings = Gio.Settings.new(
+            "com.github.molnarandris.texwriter"
+        )
+        settings.bind("width", self, "default-width", Gio.SettingsBindFlags.DEFAULT)
+        settings.bind("height", self, "default-height", Gio.SettingsBindFlags.DEFAULT)
+        settings.bind("maximized", self, "maximized", Gio.SettingsBindFlags.DEFAULT)
+        settings.bind("paned-position", self.paned, "position", Gio.SettingsBindFlags.DEFAULT)
+
+        # Making paned to change size when window is resized
+        self.paned.set_resize_start_child(True)
+        self.paned.set_resize_end_child(True)
 
 
 class AboutDialog(Gtk.AboutDialog):

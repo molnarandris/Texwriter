@@ -15,12 +15,21 @@
       </object>
     </child>
     <child>
-      <object class="GtkLabel" id="label">
-        <property name="label">Hello, World!</property>
-        <attributes>
-          <attribute name="weight" value="bold"/>
-          <attribute name="scale" value="2"/>
-        </attributes>
+      <object class="GtkPaned" id="paned">
+        <property name="position">300</property>
+        <child>
+          <object class="GtkScrolledWindow">
+            <child>
+              <object class="GtkSourceView" id="sourceview">
+                <property name="wrap_mode">word</property>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkScrolledWindow" id="pdfscroll">
+          </object>
+        </child>
       </object>
     </child>
   </template>
