@@ -12,6 +12,12 @@
             <property name="menu-model">primary_menu</property>
           </object>
         </child>
+        <child type="end">
+          <object class="GtkButton">
+            <property name="icon-name">media-playback-start-symbolic</property>
+            <property name="action-name">win.compile</property>
+          </object>
+        </child>
       </object>
     </child>
     <child>
@@ -35,6 +41,16 @@
   </template>
 
   <menu id="primary_menu">
+    <section>
+      <item>
+        <attribute name="label" translatable="yes">_Open</attribute>
+        <attribute name="action">win.open</attribute>
+      </item>
+      <item>
+        <attribute name="label" translatable="yes">_Close</attribute>
+        <attribute name="action">win.close</attribute>
+      </item>
+    </section>
     <section>
       <item>
         <attribute name="label" translatable="yes">_Preferences</attribute>

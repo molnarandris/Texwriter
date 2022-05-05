@@ -43,6 +43,43 @@ class TexwriterWindow(Gtk.ApplicationWindow):
         self.paned.set_resize_start_child(True)
         self.paned.set_resize_end_child(True)
 
+        actions = [
+            ('open', self.on_open_action, ['<primary>o']),
+            ('close', self.on_close_action, ['<primary>w']),
+            ('save', self.on_save_action, ['<primary>s']),
+            ('compile', self.on_compile_action, ['<primary>s']),
+        ]
+
+        for a in actions: self.create_action(*a)
+
+
+    def on_open_action(self, widget, _):
+        print("open a file")
+
+    def on_save_action(self, widget, _):
+        print("save")
+
+    def on_close_action(self, widget, _):
+        print("close file")
+
+    def on_compile_action(self, widget, _):
+        print("compiling")
+
+    def create_action(self, name, callback, shortcuts=None):
+        """Add a window action.
+
+        Args:
+            name: the name of the action
+            callback: the function to be called when the action is
+              activated
+            shortcuts: an optional list of accelerators
+        """
+        action = Gio.SimpleAction.new(name, None)
+        action.connect("activate", callback)
+        self.add_action(action)
+        if shortcuts:
+            self.get_application().set_accels_for_action(f"win.{name}", shortcuts)
+
 
 class AboutDialog(Gtk.AboutDialog):
 

@@ -28,12 +28,17 @@ from .window import TexwriterWindow, AboutDialog
 class TexwriterApplication(Adw.Application):
     """The main application singleton class."""
 
+
     def __init__(self):
         super().__init__(application_id='com.github.molnarandris.texwriter',
                          flags=Gio.ApplicationFlags.FLAGS_NONE)
-        self.create_action('quit', self.quit, ['<primary>q'])
-        self.create_action('about', self.on_about_action)
-        self.create_action('preferences', self.on_preferences_action)
+        actions = [
+            ('quit', lambda *_: self.quit(), ['<primary>q']),
+            ('about', self.on_about_action),
+            ('preferences', self.on_preferences_action),
+        ]
+
+        for a in actions: self.create_action(*a)
 
     def do_activate(self):
         """Called when the application is activated.
