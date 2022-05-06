@@ -18,7 +18,8 @@
 import os
 import gi
 gi.require_version('GtkSource', '5')
-from gi.repository import Gtk, GObject, GtkSource, Gio, GLib
+gi.require_version('Poppler', '0.18')
+from gi.repository import Gtk, GObject, GtkSource, Gio, GLib, Poppler, Gdk, Graphene
 
 
 @Gtk.Template(resource_path='/com/github/molnarandris/texwriter/window.ui')
@@ -29,6 +30,7 @@ class TexwriterWindow(Gtk.ApplicationWindow):
     paned        = Gtk.Template.Child()
     sourceview   = Gtk.Template.Child()
     header_bar   = Gtk.Template.Child()
+    pdfview      = Gtk.Template.Child()
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -70,7 +72,6 @@ class TexwriterWindow(Gtk.ApplicationWindow):
             path = loader.get_location().get_path()
             if success:
                 self.file = file # when we call this fcn, file is the right thing
-                print(self.file)
                 self.title.set_label(path)
             else:
                 print("Could not load file: " + path)
@@ -81,7 +82,7 @@ class TexwriterWindow(Gtk.ApplicationWindow):
         loader.load_async(io_priority=GLib.PRIORITY_DEFAULT, callback = load_finish_cb)
         path, _ = os.path.splitext(file.get_location().get_path())
         path = path + '.pdf'
-        #self.pdfview.open_file(path)
+        self.pdfview.open_file(path)
 
 
     def on_open_action(self, widget, _):
@@ -113,7 +114,6 @@ class TexwriterWindow(Gtk.ApplicationWindow):
         def save_finish_cb(saver, result):
             success = saver.save_finish(result)
             path = saver.get_location().get_path()
-            print(path)
             if success:
                 pass
             else:
@@ -170,6 +170,118 @@ class TexwriterWindow(Gtk.ApplicationWindow):
         self.add_action(action)
         if shortcuts:
             self.get_application().set_accels_for_action(f"win.{name}", shortcuts)
+
+# Currently very stupid: rendering everythin at once and keeping all in memory
+class PdfViewer(Gtk.Widget):
+    __gtype_name__ = 'PdfViewer'
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+        self.page_sep = 5
+        self.doc = None
+        self.scale = 1
+
+        self.set_valign(Gtk.Align.CENTER)
+        self.set_halign(Gtk.Align.CENTER)
+        self.set_margin_top(10)
+        self.set_margin_bottom(10)
+
+        layout = Gtk.BoxLayout()
+        layout.set_orientation(Gtk.Orientation.VERTICAL)
+        layout.set_spacing(10)
+        self.set_layout_manager(layout)
+
+        controller = Gtk.EventControllerScroll()
+        controller.connect("scroll", self.on_scroll)
+        #controller.set_propagation_phase(Gtk.PropagationPhase.BUBBLE)
+        controller.set_flags(Gtk.EventControllerScrollFlags.VERTICAL)
+        self.add_controller(controller)
+
+        controller = Gtk.GestureClick()
+        controller.connect("pressed", self.on_click)
+        controller.set_propagation_phase(Gtk.PropagationPhase.BUBBLE)
+        self.add_controller(controller)
+
+    # currently not working...
+    def do_dispose(self):
+        child = self.get_first_child()
+        while child:
+            child.unparent()
+            child = self.get_first_child()
+        super().do_dispose()
+
+    def open_file(self, path):
+        child = self.get_first_child()
+        while child:
+            child.unparent()
+            child = self.get_first_child()
+        uri = 'file://' + path
+        try:
+            doc = Poppler.Document.new_from_file(uri)
+        except:
+           print("No pdf file")
+           return
+        for i in range(doc.get_n_pages()):
+            pg = PdfPage(doc.get_page(i))
+            pg.set_parent(self)
+        self.doc = doc
+
+    def on_scroll(self, controller, dx, dy):
+        if not (controller.get_current_event_state() & Gdk.ModifierType.CONTROL_MASK):
+            return Gdk.EVENT_PROPAGATE
+        #controller.get_current_event().get_position()
+        #b,x,y = event.get_position()
+        if dy>0:
+            self.scale *= 1.05
+        else:
+            self.scale /= 1.05
+        for child in self:
+            child.set_scale(self.scale)
+        return Gdk.EVENT_STOP
+
+    def on_click(self, controller, n, x, y):
+        print("Pdf Click!", x, y)
+
+class PdfPage(Gtk.Widget):
+    __gtype_name__ = 'PdfPage'
+
+    def __init__(self, pg):
+        super().__init__()
+        self.set_halign(Gtk.Align.FILL)
+        self.set_valign(Gtk.Align.CENTER)
+        self.set_tooltip_text("hello world")
+        self.pg = pg
+        self.scale = 1
+
+        controller = Gtk.GestureClick()
+        controller.connect("pressed", self.on_click)
+        controller.set_propagation_phase(Gtk.PropagationPhase.BUBBLE)
+        self.add_controller(controller)
+
+    def on_click(self, controller, n, x,y):
+        print("Page click!", self.pg.get_index(), x, y)
+        controller.set_state(Gtk.EventSequenceState.CLAIMED)
+
+
+    def set_scale(self,scale):
+        self.scale = scale
+        self.queue_resize()
+
+    def do_measure(self, orientation, for_size):
+        w,h = self.pg.get_size()
+        s = w if orientation == Gtk.Orientation.HORIZONTAL else h
+        s = s* self.scale
+        return (s,s,-1,-1)
+
+    def do_snapshot(self,snapshot):
+        rect = Graphene.Rect().init(0,0,self.get_width(), self.get_height())
+        color = Gdk.RGBA()
+        color.parse("white")
+        snapshot.append_color(color,rect)
+        ctx = snapshot.append_cairo(rect)
+        ctx.scale(self.scale,self.scale)
+        self.pg.render(ctx)
 
 
 class AboutDialog(Gtk.AboutDialog):
