@@ -15,9 +15,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import os
 import gi
 gi.require_version('GtkSource', '5')
-from gi.repository import Gtk, GObject, GtkSource, Gio
+from gi.repository import Gtk, GObject, GtkSource, Gio, GLib
 
 
 @Gtk.Template(resource_path='/com/github/molnarandris/texwriter/window.ui')
@@ -25,7 +26,9 @@ class TexwriterWindow(Gtk.ApplicationWindow):
     __gtype_name__ = 'TexwriterWindow'
 
     GObject.type_register(GtkSource.View)
-    paned = Gtk.Template.Child()
+    paned        = Gtk.Template.Child()
+    sourceview   = Gtk.Template.Child()
+    header_bar   = Gtk.Template.Child()
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -47,17 +50,105 @@ class TexwriterWindow(Gtk.ApplicationWindow):
             ('open', self.on_open_action, ['<primary>o']),
             ('close', self.on_close_action, ['<primary>w']),
             ('save', self.on_save_action, ['<primary>s']),
-            ('compile', self.on_compile_action, ['<primary>s']),
+            ('compile', self.on_compile_action, ['F5']),
         ]
 
         for a in actions: self.create_action(*a)
 
+        manager = GtkSource.LanguageManager()
+        language = manager.get_language("latex")
+        self.sourceview.get_buffer().set_language(language)
+
+        self.file = None
+        self.title = Gtk.Label(label = "Texwriter rocks")
+        self.header_bar.set_title_widget(self.title)
+
+    def open_file(self,file):
+
+        def load_finish_cb(loader, result):
+            success = loader.load_finish(result)
+            path = loader.get_location().get_path()
+            if success:
+                self.file = file # when we call this fcn, file is the right thing
+                print(self.file)
+                self.title.set_label(path)
+            else:
+                print("Could not load file: " + path)
+            return success
+
+        buffer = self.sourceview.get_buffer()
+        loader = GtkSource.FileLoader.new(buffer, file)
+        loader.load_async(io_priority=GLib.PRIORITY_DEFAULT, callback = load_finish_cb)
+        path, _ = os.path.splitext(file.get_location().get_path())
+        path = path + '.pdf'
+        #self.pdfview.open_file(path)
+
 
     def on_open_action(self, widget, _):
-        print("open a file")
+
+        # Extra reference to dialog to prevent garbage collection
+        def dialog_response(dialog, response, _dialog):
+            if response == Gtk.ResponseType.ACCEPT:
+                file = GtkSource.File.new()
+                file.set_location(dialog.get_file())
+                self.open_file(file)
+
+        dialog = Gtk.FileChooserNative.new( "Open file", self, Gtk.FileChooserAction.OPEN, None, None)
+        dialog.connect("response", dialog_response, dialog)
+
+        filter_text = Gtk.FileFilter()
+        filter_text.set_name("Text files")
+        filter_text.add_mime_type("text/plain")
+        dialog.add_filter(filter_text)
+
+        filter_any = Gtk.FileFilter()
+        filter_any.set_name("Any files")
+        filter_any.add_pattern("*")
+        dialog.add_filter(filter_any)
+
+        dialog.show()
+
+    def save_file(self, buffer, file):
+
+        def save_finish_cb(saver, result):
+            success = saver.save_finish(result)
+            path = saver.get_location().get_path()
+            print(path)
+            if success:
+                pass
+            else:
+                print("Could not save file: " + path)
+            return success
+
+        saver = GtkSource.FileSaver.new(buffer = buffer, file = file)
+        saver.save_async(io_priority = GLib.PRIORITY_DEFAULT, callback = save_finish_cb)
 
     def on_save_action(self, widget, _):
-        print("save")
+
+        def dialog_response(self, dialog, response, _dialog):
+            if response == Gtk.ResponseType.ACCEPT:
+                file = GtkSource.File.new()
+                file.set_location(dialog.get_file())
+                self.save_file(file)
+
+        if self.file is not None:
+            buffer = self.sourceview.get_buffer()
+            self.save_file(buffer, self.file)
+            return
+        dialog = Gtk.FileChooserNative.new( "Save file", self, Gtk.FileChooserAction.SAVE, None, None)
+        dialog.connect("response", dialog_response, dialog)
+
+        filter_text = Gtk.FileFilter()
+        filter_text.set_name("Text files")
+        filter_text.add_mime_type("text/plain")
+        dialog.add_filter(filter_text)
+
+        filter_any = Gtk.FileFilter()
+        filter_any.set_name("Any files")
+        filter_any.add_pattern("*")
+        dialog.add_filter(filter_any)
+
+        dialog.show()
 
     def on_close_action(self, widget, _):
         print("close file")
