@@ -181,6 +181,8 @@ class PdfViewer(Gtk.Widget):
         self.page_sep = 5
         self.doc = None
         self.scale = 1
+        self.x = None
+        self.y = None
 
         self.set_valign(Gtk.Align.CENTER)
         self.set_halign(Gtk.Align.CENTER)
@@ -202,6 +204,15 @@ class PdfViewer(Gtk.Widget):
         controller.connect("pressed", self.on_click)
         controller.set_propagation_phase(Gtk.PropagationPhase.BUBBLE)
         self.add_controller(controller)
+
+        # As can't get event coordinates, need to store pointer coordinates
+        controller = Gtk.EventControllerMotion()
+        controller.connect("motion", self.on_motion)
+        self.add_controller(controller)
+
+    def on_motion(self,widget,x,y):
+        self.x = x
+        self.y = y
 
     # currently not working...
     def do_dispose(self):
@@ -227,17 +238,34 @@ class PdfViewer(Gtk.Widget):
             pg.set_parent(self)
         self.doc = doc
 
+
+    # Far from perfect, but more or less works. Should not render right at zoom.
     def on_scroll(self, controller, dx, dy):
         if not (controller.get_current_event_state() & Gdk.ModifierType.CONTROL_MASK):
             return Gdk.EVENT_PROPAGATE
-        #controller.get_current_event().get_position()
-        #b,x,y = event.get_position()
+        viewport = self.get_parent()
+        hadj = viewport.get_hadjustment()
+        vadj = viewport.get_vadjustment()
+        h = hadj.get_value()
+        v = vadj.get_value()
+        x = self.x - h
+        y = self.y - v
         if dy>0:
             self.scale *= 1.05
+            h = self.x*1.05 - x
+            v = self.y*1.05 - y
+            self.x *=1.05
+            self.y *=1.05
         else:
             self.scale /= 1.05
+            h = self.x/1.05 - x
+            v = self.y/1.05 - y
+            self.x/=1.05
+            self.y/=1.05
         for child in self:
             child.set_scale(self.scale)
+        hadj.set_value(h)
+        vadj.set_value(v)
         return Gdk.EVENT_STOP
 
     def on_click(self, controller, n, x, y):
