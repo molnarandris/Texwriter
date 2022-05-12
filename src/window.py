@@ -154,7 +154,21 @@ class TexwriterWindow(Gtk.ApplicationWindow):
         print("close file")
 
     def on_compile_action(self, widget, _):
+        def on_compile_finished(sender):
+            if sender.result == 0:
+                # Compilation was successful
+                print("Successfully compiled")
+            else:
+                # Compilation failed
+                print("Compile failed")
+
         print("compiling")
+        tex = self.file.get_location().get_path()
+        directory = os.path.dirname(tex)
+        cmd = ['flatpak-spawn', '--host', '/usr/bin/latexmk', '-synctex=1', '-interaction=nonstopmode',
+               '-pdf', '-halt-on-error', '-output-directory=' + directory, tex]
+        proc = ProcessRunner(cmd)
+        proc.connect('finished', on_compile_finished)
 
     def create_action(self, name, callback, shortcuts=None):
         """Add a window action.
@@ -170,6 +184,38 @@ class TexwriterWindow(Gtk.ApplicationWindow):
         self.add_action(action)
         if shortcuts:
             self.get_application().set_accels_for_action(f"win.{name}", shortcuts)
+
+class ProcessRunner(GObject.GObject):
+
+    __gsignals__ = {
+        'finished': (GObject.SIGNAL_RUN_LAST, None, ()),
+    }
+
+
+    def __init__(self,cmd):
+        super().__init__()
+
+        self.proc = Gio.Subprocess.new(cmd, Gio.SubprocessFlags.STDOUT_PIPE|Gio.SubprocessFlags.STDERR_PIPE)
+        self.cancellable = Gio.Cancellable.new()
+        self.proc.communicate_utf8_async(None, self.cancellable, self.callback, None)
+        self.result = None
+        self.stdout = None
+        self.stderr = None
+
+    def callback(self,sucprocess: Gio.Subprocess, result: Gio.AsyncResult, data):
+        try:
+            _, self.stdout, self.stderr = self.proc.communicate_utf8_finish(result)
+            self.result = self.proc.get_exit_status()
+            self.emit('finished')
+        except GLib.Error as err:
+            if err.domain == 'g-io-error-quark':
+                return
+
+    def cancel(self):
+        self.cancellable.cancel()
+
+
+
 
 # Currently very stupid: rendering everythin at once and keeping all in memory
 class PdfViewer(Gtk.Widget):

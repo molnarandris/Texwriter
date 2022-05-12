@@ -11,8 +11,9 @@
         "--device=dri",
         "--socket=wayland",
         "--talk-name=org.freedesktop.Flatpak",
-        "--filesystem=host"
-    ],
+        "--filesystem=host",
+        "--env=PATH=/usr/bin:/app/bin:/app/texlive/bin:/app/texlive/bin/x86_64-linux:/app/texlive/bin/aarch64-linux"
+      ],
     "cleanup" : [
         "/include",
         "/lib/pkgconfig",
