@@ -158,6 +158,9 @@ class TexwriterWindow(Gtk.ApplicationWindow):
             if sender.result == 0:
                 # Compilation was successful
                 print("Successfully compiled")
+                tex = self.file.get_location().get_path()
+                pdf,_  = os.path.splitext(tex)
+                self.pdfview.open_file(pdf+".pdf")
             else:
                 # Compilation failed
                 print("Compile failed")
