@@ -31,6 +31,7 @@ class TexwriterWindow(Gtk.ApplicationWindow):
     sourceview   = Gtk.Template.Child()
     header_bar   = Gtk.Template.Child()
     pdfview      = Gtk.Template.Child()
+    title        = Gtk.Template.Child()
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -59,11 +60,11 @@ class TexwriterWindow(Gtk.ApplicationWindow):
 
         manager = GtkSource.LanguageManager()
         language = manager.get_language("latex")
-        self.sourceview.get_buffer().set_language(language)
+        buffer = self.sourceview.get_buffer()
+        buffer.set_language(language)
+        buffer.connect("changed", lambda _: self.title.set_saved(False))
 
         self.file = None
-        self.title = Gtk.Label(label = "Texwriter rocks")
-        self.header_bar.set_title_widget(self.title)
 
     def open_file(self,file):
 
@@ -72,7 +73,10 @@ class TexwriterWindow(Gtk.ApplicationWindow):
             path = loader.get_location().get_path()
             if success:
                 self.file = file # when we call this fcn, file is the right thing
-                self.title.set_label(path)
+                self.title.set_saved(True)
+                s,t = os.path.split(path)
+                self.title.set_title_string(t)
+                self.title.set_subtitle_string(s)
             else:
                 print("Could not load file: " + path)
             return success
@@ -115,7 +119,7 @@ class TexwriterWindow(Gtk.ApplicationWindow):
             success = saver.save_finish(result)
             path = saver.get_location().get_path()
             if success:
-                pass
+                self.title.set_saved(True)
             else:
                 print("Could not save file: " + path)
             return success
@@ -360,6 +364,40 @@ class PdfPage(Gtk.Widget):
         ctx.scale(self.scale,self.scale)
         self.pg.render(ctx)
 
+class TitleWidget(Gtk.Box):
+    __gtype_name__ = "TitleWidget"
+
+    def __init__(self):
+        super().__init__()
+        self.set_orientation(Gtk.Orientation.VERTICAL)
+        self.set_valign(Gtk.Align.CENTER)
+        self.title = Gtk.Label()
+        self.subtitle = Gtk.Label()
+        self.saved = True
+        self.set_title_string("New Document")
+        self.set_subtitle_string("path")
+
+        self.append(self.title)
+        self.append(self.subtitle)
+
+
+    def set_title_string(self,s):
+        self.title_string = s
+        if self.saved:
+            self.title.set_markup("<b>" + s + "</b>")
+        else:
+            self.title.set_markup("<it><b>" + s + "</b></it>")
+
+    def set_subtitle_string(self,s):
+        self.subtitle_string = s
+        self.subtitle.set_markup("<small>" + s + "</small>")
+
+    def set_saved(self,b):
+        self.saved = b
+        if self.saved:
+            self.title.set_markup("<b>" + self.title_string + "</b>")
+        else:
+            self.title.set_markup("<i><b>" + self.title_string + "</b></i>")
 
 class AboutDialog(Gtk.AboutDialog):
 

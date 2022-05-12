@@ -6,6 +6,10 @@
     <property name="default-height">300</property>
     <child type="titlebar">
       <object class="GtkHeaderBar" id="header_bar">
+        <property name="title-widget">
+          <object class="TitleWidget" id="title">
+          </object>
+        </property>
         <child type="end">
           <object class="GtkMenuButton">
             <property name="icon-name">open-menu-symbolic</property>
