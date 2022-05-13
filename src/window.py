@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import os
+import os, re
 import gi
 gi.require_version('GtkSource', '5')
 gi.require_version('Poppler', '0.18')
@@ -69,7 +69,21 @@ class TexwriterWindow(Gtk.ApplicationWindow):
 
     def synctex_fwd(self, sender, _):
         def on_synctex_finished(sender):
-            print("Synctex finished\n", sender.stdout)
+            result = re.search("Page:(.*)", sender.stdout)
+            page = int(result.group(1))
+            result = re.search("x:(.*)", sender.stdout)
+            x = float(result.group(1))
+            result = re.search("y:(.*)", sender.stdout)
+            y = float(result.group(1))
+            result = re.search("h:(.*)", sender.stdout)
+            h = float(result.group(1))
+            result = re.search("v:(.*)", sender.stdout)
+            v = float(result.group(1))
+            result = re.search("H:(.*)", sender.stdout)
+            H = float(result.group(1))
+            result = re.search("W:(.*)", sender.stdout)
+            W = float(result.group(1))
+            print(page, x, y, h, v, H, W)
 
         buf = self.sourceview.get_buffer()
         it = buf.get_iter_at_mark(buf.get_insert())
