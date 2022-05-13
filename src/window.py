@@ -54,6 +54,7 @@ class TexwriterWindow(Gtk.ApplicationWindow):
             ('close', self.on_close_action, ['<primary>w']),
             ('save', self.on_save_action, ['<primary>s']),
             ('compile', self.on_compile_action, ['F5']),
+            ('synctex-fwd', self.synctex_fwd, ['F7']),
         ]
 
         for a in actions: self.create_action(*a)
@@ -65,6 +66,19 @@ class TexwriterWindow(Gtk.ApplicationWindow):
         buffer.connect("changed", lambda _: self.title.set_saved(False))
 
         self.file = None
+
+    def synctex_fwd(self, sender, _):
+        def on_synctex_finished(sender):
+            print("Synctex finished\n", sender.stdout)
+
+        buf = self.sourceview.get_buffer()
+        it = buf.get_iter_at_mark(buf.get_insert())
+        pos = str(it.get_line()) + ":" + str(it.get_line_offset()) + ":" + self.file.get_location().get_path()
+        path, _ = os.path.splitext(self.file.get_location().get_path())
+        path = path + '.pdf'
+        cmd = ['flatpak-spawn', '--host', 'synctex', 'view', '-i', pos, '-o', path]
+        proc = ProcessRunner(cmd)
+        proc.connect('finished', on_synctex_finished)
 
     def open_file(self,file):
 
