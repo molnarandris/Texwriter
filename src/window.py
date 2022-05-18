@@ -70,7 +70,10 @@ class TexwriterWindow(Gtk.ApplicationWindow):
         self.pdfview.connect("synctex-bck", self.synctex_bck)
 
     def synctex_bck(self,sender, line):
-        print("Synctex back", line)
+        buf = self.sourceview.get_buffer()
+        _, it = buf.get_iter_at_line_offset(line-1,0)
+        buf.place_cursor(it)
+        self.sourceview.scroll_to_iter(it,0,True, 0, 0.382)
 
     def synctex_fwd(self, sender, _):
         def on_synctex_finished(sender):
@@ -445,7 +448,7 @@ class PdfPage(Gtk.Widget):
 
         if not (controller.get_current_event_state() & Gdk.ModifierType.CONTROL_MASK):
             return Gdk.EVENT_PROPAGATE
-        arg = str(self.pg.get_index()) + ":" + str(x) + ":" + str(y) + ":" + self.get_parent().get_parent().path
+        arg = str(self.pg.get_index()+1) + ":" + str(x/self.scale) + ":" + str(y/self.scale) + ":" + self.get_parent().get_parent().path
         cmd = ['flatpak-spawn', '--host', 'synctex', 'edit', '-o', arg]
         proc = ProcessRunner(cmd)
         proc.connect('finished', on_synctex_finished)
