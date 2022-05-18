@@ -67,6 +67,11 @@ class TexwriterWindow(Gtk.ApplicationWindow):
 
         self.file = None
 
+        self.pdfview.connect("synctex-bck", self.synctex_bck)
+
+    def synctex_bck(self,sender, line):
+        print("Synctex back", line)
+
     def synctex_fwd(self, sender, _):
         def on_synctex_finished(sender):
             result = re.search("Page:(.*)", sender.stdout)
@@ -256,6 +261,10 @@ class ProcessRunner(GObject.GObject):
 class PdfViewer(Gtk.Widget):
     __gtype_name__ = 'PdfViewer'
 
+    __gsignals__ = {
+        'synctex-bck': (GObject.SIGNAL_RUN_FIRST, None, (int,))
+    }
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
@@ -264,6 +273,7 @@ class PdfViewer(Gtk.Widget):
         self.scale = 1
         self.x = None
         self.y = None
+        self.path = None
 
         self.set_valign(Gtk.Align.CENTER)
         self.set_halign(Gtk.Align.CENTER)
@@ -308,6 +318,7 @@ class PdfViewer(Gtk.Widget):
         while child:
             child.unparent()
             child = self.get_first_child()
+        self.path = path
         uri = 'file://' + path
         try:
             doc = Poppler.Document.new_from_file(uri)
@@ -426,8 +437,21 @@ class PdfPage(Gtk.Widget):
         self.add_controller(controller)
 
     def on_click(self, controller, n, x,y):
-        print("Page click!", self.pg.get_index(), x, y)
+
+        def on_synctex_finished(sender):
+            result = re.search("Line:(.*)", sender.stdout)
+            line = int(result.group(1))
+            self.get_parent().get_parent().emit("synctex-bck", line)
+
+        if not (controller.get_current_event_state() & Gdk.ModifierType.CONTROL_MASK):
+            return Gdk.EVENT_PROPAGATE
+        arg = str(self.pg.get_index()) + ":" + str(x) + ":" + str(y) + ":" + self.get_parent().get_parent().path
+        cmd = ['flatpak-spawn', '--host', 'synctex', 'edit', '-o', arg]
+        proc = ProcessRunner(cmd)
+        proc.connect('finished', on_synctex_finished)
+
         controller.set_state(Gtk.EventSequenceState.CLAIMED)
+
 
 
     def set_scale(self,scale):
