@@ -83,7 +83,7 @@ class TexwriterWindow(Gtk.ApplicationWindow):
             H = float(result.group(1))
             result = re.search("W:(.*)", sender.stdout)
             W = float(result.group(1))
-            print(page, x, y, h, v, H, W)
+            self.pdfview.synctex_fwd(page,x,y,h,v,H,W)
 
         buf = self.sourceview.get_buffer()
         it = buf.get_iter_at_mark(buf.get_insert())
@@ -315,8 +315,10 @@ class PdfViewer(Gtk.Widget):
            print("No pdf file")
            return
         for i in range(doc.get_n_pages()):
+            overlay = Gtk.Overlay()
+            overlay.set_parent(self)
             pg = PdfPage(doc.get_page(i))
-            pg.set_parent(self)
+            overlay.set_child(pg)
         self.doc = doc
 
 
@@ -344,13 +346,68 @@ class PdfViewer(Gtk.Widget):
             self.x/=1.05
             self.y/=1.05
         for child in self:
-            child.set_scale(self.scale)
+            for c in child:
+                c.set_scale(self.scale)
         hadj.set_value(h)
         vadj.set_value(v)
         return Gdk.EVENT_STOP
 
     def on_click(self, controller, n, x, y):
         print("Pdf Click!", x, y)
+
+    def synctex_fwd(self, page, x, y, h, v, H, W):
+        print(page, x, y, h, v, H, W)
+        rect = SynctexRect(W,H,h,v,self.scale)
+        overlay = self.get_page(page)
+        overlay.add_overlay(rect)
+
+    def get_page(self,n):
+        i = 1
+        child = self.get_first_child()
+        while i<n:
+            child = child.get_next_sibling()
+            i+=1
+        return child
+
+
+class SynctexRect(Gtk.Widget):
+    __gtype_name__ = 'SynctexRect'
+
+    def __init__(self,W,H,h,v,s):
+        super().__init__()
+        self.width = W
+        self.height = H+10
+        self.top = v-H-5
+        self.start = h
+        self.color = Gdk.RGBA()
+        self.color.parse("#FFF38080")
+        self.set_halign(Gtk.Align.START)
+        self.set_valign(Gtk.Align.START)
+        self.set_scale(s)
+        GLib.timeout_add(700,self.do_destroy)
+
+    def set_margin(self):
+        self.set_margin_top(self.top*self.scale)
+        self.set_margin_start(self.start*self.scale)
+
+    def do_measure(self, orientation, for_size):
+        if orientation == Gtk.Orientation.VERTICAL:
+            return (self.height*self.scale,self.height*self.scale,-1,-1)
+        else:
+            return (self.width*self.scale,self.width*self.scale,-1,-1)
+
+    def do_snapshot(self, snapshot):
+        rect = Graphene.Rect().init(0, 0, self.get_width(), self.get_height())
+        snapshot.append_color(self.color, rect)
+
+    def set_scale(self,s):
+        self.scale = s
+        self.set_margin()
+        self.queue_resize()
+
+    def do_destroy(self):
+        self.unparent()
+        return False
 
 class PdfPage(Gtk.Widget):
     __gtype_name__ = 'PdfPage'
