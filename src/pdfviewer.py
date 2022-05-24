@@ -111,12 +111,22 @@ class PdfViewer(Gtk.Widget):
         return Gdk.EVENT_STOP
 
     def on_click(self, controller, n, x, y):
-        print("Pdf Click!", x, y)
+        pass
 
     def synctex_fwd(self, page, x, y, h, v, H, W):
         rect = SynctexRect(W,H,h,v,self.scale)
         overlay = self.get_page(page)
         overlay.add_overlay(rect)
+        self.scroll_to(page,y)
+
+    def scroll_to(self, page, y):
+        pg = self.get_page(page).get_child()
+        point = Graphene.Point()
+        point.init(0,y)
+        _,p = pg.compute_point(self,point)
+        viewport = self.get_parent()
+        vadj = viewport.get_vadjustment()
+        vadj.set_value(p.y-vadj.get_page_size()*0.302)
 
     def get_page(self,n):
         i = 1
