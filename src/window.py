@@ -65,6 +65,7 @@ class TexwriterWindow(Gtk.ApplicationWindow):
         buffer.connect("changed", lambda _: self.title.set_saved(False))
 
         self.file = None
+        self.to_compile = False
 
         self.pdfview.connect("synctex-bck", self.synctex_bck)
 
@@ -155,6 +156,8 @@ class TexwriterWindow(Gtk.ApplicationWindow):
             path = saver.get_location().get_path()
             if success:
                 self.title.set_saved(True)
+                if self.to_compile:
+                    self.compile()
             else:
                 print("Could not save file: " + path)
             return success
@@ -193,18 +196,22 @@ class TexwriterWindow(Gtk.ApplicationWindow):
         print("close file")
 
     def on_compile_action(self, widget, _):
+        self.to_compile = True
+        self.activate_action("win.save")
+
+    def compile(self):
         def on_compile_finished(sender):
             if sender.result == 0:
                 # Compilation was successful
-                print("Successfully compiled")
                 tex = self.file.get_location().get_path()
                 pdf,_  = os.path.splitext(tex)
-                self.pdfview.open_file(pdf+".pdf")
+                self.pdfview.open_file(pdf + ".pdf")
+                self.activate_action("win.synctex-fwd", None)
+                self.to_compile = False
             else:
                 # Compilation failed
                 print("Compile failed")
 
-        print("compiling")
         tex = self.file.get_location().get_path()
         directory = os.path.dirname(tex)
         cmd = ['flatpak-spawn', '--host', '/usr/bin/latexmk', '-synctex=1', '-interaction=nonstopmode',
