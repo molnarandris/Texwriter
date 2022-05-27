@@ -31,6 +31,7 @@ texwriter_sources = [
   'window.py',
   'pdfviewer.py',
   'utilities.py',
+  'documentmanager.py',
 ]
 
 install_data(texwriter_sources, install_dir: moduledir)

@@ -20,6 +20,7 @@ gi.require_version('GtkSource', '5')
 from gi.repository import Gtk, GObject, GtkSource, Gio, GLib, Gdk
 from .pdfviewer import PdfViewer
 from .utilities import ProcessRunner
+from .documentmanager import  DocumentManager
 
 @Gtk.Template(resource_path='/com/github/molnarandris/texwriter/window.ui')
 class TexwriterWindow(Gtk.ApplicationWindow):
@@ -64,10 +65,18 @@ class TexwriterWindow(Gtk.ApplicationWindow):
         buffer.set_language(language)
         buffer.connect("changed", lambda _: self.title.set_saved(False))
 
-        self.file = None
-        self.to_compile = False
+        docmanager = DocumentManager(buffer)
+        docmanager.connect("open-success", self.open_success_cb)
+        docmanager.connect("save-success", lambda _: self.title.set_saved(True))
+        docmanager.connect("open-pdf", self.open_pdf)
+
+        self.docmanager = docmanager
 
         self.pdfview.connect("synctex-bck", self.synctex_bck)
+
+    def open_pdf(self,sender,path):
+        self.pdfview.open_file(path)
+        self.activate_action("win.synctex-fwd", None)
 
     def synctex_bck(self,sender, line):
         buf = self.sourceview.get_buffer()
@@ -95,34 +104,19 @@ class TexwriterWindow(Gtk.ApplicationWindow):
 
         buf = self.sourceview.get_buffer()
         it = buf.get_iter_at_mark(buf.get_insert())
-        pos = str(it.get_line()) + ":" + str(it.get_line_offset()) + ":" + self.file.get_location().get_path()
-        path, _ = os.path.splitext(self.file.get_location().get_path())
-        path = path + '.pdf'
+        path = self.docmanager.file.get_location().get_path()
+        pos = str(it.get_line()) + ":" + str(it.get_line_offset()) + ":" + path
+        path = os.path.splitext(path)[0] + '.pdf'
         cmd = ['flatpak-spawn', '--host', 'synctex', 'view', '-i', pos, '-o', path]
         proc = ProcessRunner(cmd)
         proc.connect('finished', on_synctex_finished)
 
-    def open_file(self,file):
-
-        def load_finish_cb(loader, result):
-            success = loader.load_finish(result)
-            path = loader.get_location().get_path()
-            if success:
-                self.file = file # when we call this fcn, file is the right thing
-                self.title.set_saved(True)
-                s,t = os.path.split(path)
-                self.title.set_title_string(t)
-                self.title.set_subtitle_string(s)
-            else:
-                print("Could not load file: " + path)
-            return success
-
-        buffer = self.sourceview.get_buffer()
-        loader = GtkSource.FileLoader.new(buffer, file)
-        loader.load_async(io_priority=GLib.PRIORITY_DEFAULT, callback = load_finish_cb)
-        path, _ = os.path.splitext(file.get_location().get_path())
-        path = path + '.pdf'
-        self.pdfview.open_file(path)
+    def open_success_cb(self, sender, path):
+        self.title.set_saved(True)
+        subtitle,title = os.path.split(path)
+        self.title.set_title_string(title)
+        self.title.set_subtitle_string(subtitle)
+        self.pdfview.open_file(os.path.splitext(path)[0] + '.pdf')
 
 
     def on_open_action(self, widget, _):
@@ -132,14 +126,14 @@ class TexwriterWindow(Gtk.ApplicationWindow):
             if response == Gtk.ResponseType.ACCEPT:
                 file = GtkSource.File.new()
                 file.set_location(dialog.get_file())
-                self.open_file(file)
+                self.docmanager.open_file(file)
 
         dialog = Gtk.FileChooserNative.new( "Open file", self, Gtk.FileChooserAction.OPEN, None, None)
         dialog.connect("response", dialog_response, dialog)
 
         filter_text = Gtk.FileFilter()
-        filter_text.set_name("Text files")
-        filter_text.add_mime_type("text/plain")
+        filter_text.set_name("Latex")
+        filter_text.add_mime_type("text/x-tex")
         dialog.add_filter(filter_text)
 
         filter_any = Gtk.FileFilter()
@@ -149,21 +143,6 @@ class TexwriterWindow(Gtk.ApplicationWindow):
 
         dialog.show()
 
-    def save_file(self, buffer, file):
-
-        def save_finish_cb(saver, result):
-            success = saver.save_finish(result)
-            path = saver.get_location().get_path()
-            if success:
-                self.title.set_saved(True)
-                if self.to_compile:
-                    self.compile()
-            else:
-                print("Could not save file: " + path)
-            return success
-
-        saver = GtkSource.FileSaver.new(buffer = buffer, file = file)
-        saver.save_async(io_priority = GLib.PRIORITY_DEFAULT, callback = save_finish_cb)
 
     def on_save_action(self, widget, _):
 
@@ -171,18 +150,17 @@ class TexwriterWindow(Gtk.ApplicationWindow):
             if response == Gtk.ResponseType.ACCEPT:
                 file = GtkSource.File.new()
                 file.set_location(dialog.get_file())
-                self.save_file(file)
+                self.docmanager.save_file(file)
 
-        if self.file is not None:
-            buffer = self.sourceview.get_buffer()
-            self.save_file(buffer, self.file)
+        if self.docmanager.file is not None:
+            self.docmanager.save_file()
             return
         dialog = Gtk.FileChooserNative.new( "Save file", self, Gtk.FileChooserAction.SAVE, None, None)
         dialog.connect("response", dialog_response, dialog)
 
         filter_text = Gtk.FileFilter()
-        filter_text.set_name("Text files")
-        filter_text.add_mime_type("text/plain")
+        filter_text.set_name("Latex")
+        filter_text.add_mime_type("text/x-tex")
         dialog.add_filter(filter_text)
 
         filter_any = Gtk.FileFilter()
@@ -196,28 +174,8 @@ class TexwriterWindow(Gtk.ApplicationWindow):
         print("close file")
 
     def on_compile_action(self, widget, _):
-        self.to_compile = True
+        self.docmanager.to_compile = True
         self.activate_action("win.save")
-
-    def compile(self):
-        def on_compile_finished(sender):
-            if sender.result == 0:
-                # Compilation was successful
-                tex = self.file.get_location().get_path()
-                pdf,_  = os.path.splitext(tex)
-                self.pdfview.open_file(pdf + ".pdf")
-                self.activate_action("win.synctex-fwd", None)
-                self.to_compile = False
-            else:
-                # Compilation failed
-                print("Compile failed")
-
-        tex = self.file.get_location().get_path()
-        directory = os.path.dirname(tex)
-        cmd = ['flatpak-spawn', '--host', '/usr/bin/latexmk', '-synctex=1', '-interaction=nonstopmode',
-               '-pdf', '-halt-on-error', '-output-directory=' + directory, tex]
-        proc = ProcessRunner(cmd)
-        proc.connect('finished', on_compile_finished)
 
     def create_action(self, name, callback, shortcuts=None):
         """Add a window action.
