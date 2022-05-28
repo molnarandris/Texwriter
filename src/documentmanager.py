@@ -1,4 +1,4 @@
-import os
+import os, re
 from gi.repository import GObject, GtkSource, GLib, Gio
 from .utilities import  ProcessRunner
 
@@ -19,6 +19,7 @@ class DocumentManager(GObject.GObject):
         self.file = None
         self.to_compile = False
         self.cancellable = None
+        self.logprocessor = LogProcessor(buffer)
 
     def open_file(self,file):
 
@@ -27,6 +28,7 @@ class DocumentManager(GObject.GObject):
             path = loader.get_location().get_path()
             if success:
                 self.file = file # when we call this fcn, file is the right thing
+                self.logprocessor.set_path(path)
                 self.emit("open-success", path)
             else:
                 print("Could not load file: " + path)
@@ -65,7 +67,9 @@ class DocumentManager(GObject.GObject):
             else:
                 # Compilation failed
                 self.emit("compiled", False)
+                self.logprocessor.run()
 
+        self.buffer.clear_tags()
         tex = self.file.get_location().get_path()
         directory = os.path.dirname(tex)
         cmd = ['flatpak-spawn', '--host', '/usr/bin/latexmk', '-synctex=1', '-interaction=nonstopmode',
@@ -76,4 +80,59 @@ class DocumentManager(GObject.GObject):
 
     def cancel(self):
         self.cancellable.cancel()
+
+class LogProcessor:
+
+    # The regexps to look for in the log file
+    badbox  = re.compile("^Overfull.* ([0-9]+)\-\-[0-9]+\n",re.MULTILINE)
+    warning = re.compile("^LaTeX Warning: (Reference|Citation) `(.*)'.* ([0-9]*)\.\n",re.MULTILINE)
+    error   = re.compile("^! (.*)\nl\.([0-9]*)(.*?$)",re.MULTILINE|re.DOTALL)
+
+    def __init__(self, buffer):
+        self.buffer  = buffer
+        self.path = None
+
+    def set_path(self,path):
+        self.path = os.path.splitext(path)[0] + '.log'
+
+    def run(self):
+
+        def load_cb(src,res,data):
+            success, contents, etag = src.load_contents_finish(res)
+            try:
+                decoded = contents.decode("UTF-8")
+                self.process(decoded)
+            except UnicodeDecodeError:
+                print("Error: Unknown character encoding of the log file. Expecting UTF-8")
+
+        # load the log file.
+        file = Gio.File.new_for_path(self.path)
+        file.load_contents_async(None, load_cb, None)
+
+    def process(self,log):
+        self.buffer.clear_tags()
+        it = re.finditer(self.error,log)
+        place_cursor = True
+        for m in it:
+            line   = int(m.group(2))-1
+            detail = m.group(3)[4:]
+            self.buffer.highlight("Error", line, detail)
+            place_cursor = False
+        place_cursor = False
+
+        it = re.finditer(self.warning,log)
+        for m in it:
+            line   = int(m.group(3))-1
+            detail = m.group(2)
+            if msg == "Reference":
+                detail = "\\ref{" + detail + "}"
+            else:
+                detail = "\\cite{" + detail + "}"
+            self.buffer.highlight("Warning", line, detail)
+
+        it = re.finditer(self.badbox, log)
+        for m in it:
+            line   = int(m.group(1))-1
+            detail = ""
+            self.buffer.highlight("Warning", line, detail)
 

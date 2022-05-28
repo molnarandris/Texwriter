@@ -21,6 +21,7 @@ from gi.repository import Gtk, GObject, GtkSource, Gio, GLib, Gdk
 from .pdfviewer import PdfViewer
 from .utilities import ProcessRunner
 from .documentmanager import  DocumentManager
+from .latexbuffer import LatexBuffer
 
 @Gtk.Template(resource_path='/com/github/molnarandris/texwriter/window.ui')
 class TexwriterWindow(Gtk.ApplicationWindow):
@@ -61,10 +62,8 @@ class TexwriterWindow(Gtk.ApplicationWindow):
 
         for a in actions: self.create_action(*a)
 
-        manager = GtkSource.LanguageManager()
-        language = manager.get_language("latex")
-        buffer = self.sourceview.get_buffer()
-        buffer.set_language(language)
+        buffer = LatexBuffer()
+        self.sourceview.set_buffer(buffer)
         buffer.connect("changed", lambda _: self.title.set_saved(False))
 
         docmanager = DocumentManager(buffer)
