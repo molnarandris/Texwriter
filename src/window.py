@@ -32,6 +32,7 @@ class TexwriterWindow(Gtk.ApplicationWindow):
     header_bar   = Gtk.Template.Child()
     pdfview      = Gtk.Template.Child()
     title        = Gtk.Template.Child()
+    btn_compile  = Gtk.Template.Child()
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -55,6 +56,7 @@ class TexwriterWindow(Gtk.ApplicationWindow):
             ('save', self.on_save_action, ['<primary>s']),
             ('compile', self.on_compile_action, ['F5']),
             ('synctex-fwd', self.synctex_fwd, ['F7']),
+            ('cancel', self.on_cancel_action, []),
         ]
 
         for a in actions: self.create_action(*a)
@@ -69,10 +71,15 @@ class TexwriterWindow(Gtk.ApplicationWindow):
         docmanager.connect("open-success", self.open_success_cb)
         docmanager.connect("save-success", lambda _: self.title.set_saved(True))
         docmanager.connect("open-pdf", self.open_pdf)
+        docmanager.connect("compiled", self.on_compiled)
 
         self.docmanager = docmanager
 
         self.pdfview.connect("synctex-bck", self.synctex_bck)
+
+    def on_compiled(self, sender, success):
+        self.btn_compile.set_icon_name("media-playback-start")
+        self.btn_compile.set_action_name("win.compile")
 
     def open_pdf(self,sender,path):
         self.pdfview.open_file(path)
@@ -176,6 +183,11 @@ class TexwriterWindow(Gtk.ApplicationWindow):
     def on_compile_action(self, widget, _):
         self.docmanager.to_compile = True
         self.activate_action("win.save")
+        self.btn_compile.set_icon_name("media-playback-stop")
+        self.btn_compile.set_action_name("win.cancel")
+
+    def on_cancel_action(self, widget, _):
+        self.documentmanager.cancel()
 
     def create_action(self, name, callback, shortcuts=None):
         """Add a window action.

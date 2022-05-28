@@ -17,7 +17,7 @@
           </object>
         </child>
         <child type="end">
-          <object class="GtkButton">
+          <object class="GtkButton" id="btn_compile">
             <property name="icon-name">media-playback-start-symbolic</property>
             <property name="action-name">win.compile</property>
           </object>
