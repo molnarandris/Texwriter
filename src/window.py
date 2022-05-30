@@ -134,19 +134,8 @@ class TexwriterWindow(Gtk.ApplicationWindow):
                 file.set_location(dialog.get_file())
                 self.docmanager.open_file(file)
 
-        dialog = Gtk.FileChooserNative.new( "Open file", self, Gtk.FileChooserAction.OPEN, None, None)
+        dialog = TexFileChooser.new("open", self)
         dialog.connect("response", dialog_response, dialog)
-
-        filter_text = Gtk.FileFilter()
-        filter_text.set_name("Latex")
-        filter_text.add_mime_type("text/x-tex")
-        dialog.add_filter(filter_text)
-
-        filter_any = Gtk.FileFilter()
-        filter_any.set_name("Any files")
-        filter_any.add_pattern("*")
-        dialog.add_filter(filter_any)
-
         dialog.show()
 
 
@@ -161,19 +150,8 @@ class TexwriterWindow(Gtk.ApplicationWindow):
         if self.docmanager.file is not None:
             self.docmanager.save_file()
             return
-        dialog = Gtk.FileChooserNative.new( "Save file", self, Gtk.FileChooserAction.SAVE, None, None)
+        dialog = TexFileChooser.new("save", self)
         dialog.connect("response", dialog_response, dialog)
-
-        filter_text = Gtk.FileFilter()
-        filter_text.set_name("Latex")
-        filter_text.add_mime_type("text/x-tex")
-        dialog.add_filter(filter_text)
-
-        filter_any = Gtk.FileFilter()
-        filter_any.set_name("Any files")
-        filter_any.add_pattern("*")
-        dialog.add_filter(filter_any)
-
         dialog.show()
 
     def on_close_action(self, widget, _):
@@ -203,6 +181,33 @@ class TexwriterWindow(Gtk.ApplicationWindow):
         if shortcuts:
             self.get_application().set_accels_for_action(f"win.{name}", shortcuts)
 
+
+class TexFileChooser(Gtk.FileChooserNative):
+
+    def __init__(self, action):
+        super().__init__()
+
+    def new(action, parent):
+        if action == "open":
+            flag = Gtk.FileChooserAction.OPEN
+            text = "Open file"
+        elif action == "save":
+            flag = Gtk.FileChooserAction.SAVE
+            text = "Save file"
+
+        dialog = Gtk.FileChooserNative.new(text, parent, flag, None, None)
+
+        filter_tex = Gtk.FileFilter()
+        filter_tex.set_name("Latex")
+        filter_tex.add_mime_type("text/x-tex")
+        dialog.add_filter(filter_tex)
+
+        filter_any = Gtk.FileFilter()
+        filter_any.set_name("Any files")
+        filter_any.add_pattern("*")
+        dialog.add_filter(filter_any)
+
+        return dialog
 
 class TitleWidget(Gtk.Box):
     __gtype_name__ = "TitleWidget"
