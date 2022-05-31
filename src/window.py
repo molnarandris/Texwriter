@@ -228,10 +228,7 @@ class TitleWidget(Gtk.Box):
 
     def set_title_string(self,s):
         self.title_string = s
-        if self.saved:
-            self.title.set_markup("<b>" + s + "</b>")
-        else:
-            self.title.set_markup("<it><b>" + s + "</b></it>")
+        self.set_saved(self.saved)
 
     def set_subtitle_string(self,s):
         self.subtitle_string = s
@@ -242,7 +239,7 @@ class TitleWidget(Gtk.Box):
         if self.saved:
             self.title.set_markup("<b>" + self.title_string + "</b>")
         else:
-            self.title.set_markup("<i><b>" + self.title_string + "</b></i>")
+            self.title.set_markup("<i><b>" + self.title_string + "*" + "</b></i>")
 
 class AboutDialog(Gtk.AboutDialog):
 
