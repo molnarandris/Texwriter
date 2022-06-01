@@ -127,32 +127,19 @@ class TexwriterWindow(Gtk.ApplicationWindow):
 
     def on_open_action(self, widget, _):
 
-        # Extra reference to dialog to prevent garbage collection
-        def dialog_response(dialog, response, _dialog):
-            if response == Gtk.ResponseType.ACCEPT:
-                file = GtkSource.File.new()
-                file.set_location(dialog.get_file())
-                self.docmanager.open_file(file)
-
-        dialog = TexFileChooser.new("open", self)
-        dialog.connect("response", dialog_response, dialog)
-        dialog.show()
+        dialog = TexFileChooser("open", self)
+        dialog.connect("finished", lambda _, f: self.docmanager.open_file(f))
+        dialog.run()
 
 
     def on_save_action(self, widget, _):
 
-        def dialog_response(self, dialog, response, _dialog):
-            if response == Gtk.ResponseType.ACCEPT:
-                file = GtkSource.File.new()
-                file.set_location(dialog.get_file())
-                self.docmanager.save_file(file)
-
         if self.docmanager.file is not None:
             self.docmanager.save_file()
-            return
-        dialog = TexFileChooser.new("save", self)
-        dialog.connect("response", dialog_response, dialog)
-        dialog.show()
+        else:
+            dialog = TexFileChooser("save", self)
+            dialog.connect("finished", lambda _, f: self.docmanager.save_file(f))
+            dialog.show()
 
     def on_close_action(self, widget, _):
         print("close file")
@@ -182,12 +169,14 @@ class TexwriterWindow(Gtk.ApplicationWindow):
             self.get_application().set_accels_for_action(f"win.{name}", shortcuts)
 
 
-class TexFileChooser(Gtk.FileChooserNative):
+class TexFileChooser(GObject.GObject):
 
-    def __init__(self, action):
+    __gsignals__ = {
+        'finished': (GObject.SIGNAL_RUN_FIRST, None, (GtkSource.File,))
+    }
+
+    def __init__(self, action, parent):
         super().__init__()
-
-    def new(action, parent):
         if action == "open":
             flag = Gtk.FileChooserAction.OPEN
             text = "Open file"
@@ -206,8 +195,17 @@ class TexFileChooser(Gtk.FileChooserNative):
         filter_any.set_name("Any files")
         filter_any.add_pattern("*")
         dialog.add_filter(filter_any)
+        dialog.connect("response", self.dialog_response)
+        self.dialog = dialog # to keep dialog alive until response is called
 
-        return dialog
+    def dialog_response(self, dialog, response):
+        if response == Gtk.ResponseType.ACCEPT:
+            file = GtkSource.File.new()
+            file.set_location(dialog.get_file())
+            self.emit("finished", file)
+
+    def run(self):
+        self.dialog.show()
 
 class TitleWidget(Gtk.Box):
     __gtype_name__ = "TitleWidget"
