@@ -20,6 +20,7 @@ class DocumentManager(GObject.GObject):
         self.to_compile = False
         self.cancellable = None
         self.logprocessor = LogProcessor(buffer)
+        self.logprocessor.connect('finished',self.on_log_finished)
 
     def open_file(self,file):
 
@@ -66,7 +67,6 @@ class DocumentManager(GObject.GObject):
                 self.to_compile = False
             else:
                 # Compilation failed
-                self.emit("compiled", False)
                 self.logprocessor.run()
 
         self.buffer.clear_tags()
@@ -81,7 +81,15 @@ class DocumentManager(GObject.GObject):
     def cancel(self):
         self.cancellable.cancel()
 
-class LogProcessor:
+    def on_log_finished(self, logproc):
+        self.emit("compiled", False)
+
+
+class LogProcessor(GObject.GObject):
+
+    __gsignals__ = {
+        'finished': (GObject.SIGNAL_RUN_LAST, None, ()),
+    }
 
     # The regexps to look for in the log file
     badbox  = re.compile("^Overfull.* ([0-9]+)\-\-[0-9]+\n",re.MULTILINE)
@@ -89,6 +97,7 @@ class LogProcessor:
     error   = re.compile("^! (.*)\nl\.([0-9]*)(.*?$)",re.MULTILINE|re.DOTALL)
 
     def __init__(self, buffer):
+        super().__init__()
         self.buffer  = buffer
         self.path = None
 
@@ -102,6 +111,7 @@ class LogProcessor:
             try:
                 decoded = contents.decode("UTF-8")
                 self.process(decoded)
+                self.emit('finished')
             except UnicodeDecodeError:
                 print("Error: Unknown character encoding of the log file. Expecting UTF-8")
 
@@ -111,17 +121,13 @@ class LogProcessor:
 
     def process(self,log):
         self.buffer.clear_tags()
-        it = re.finditer(self.error,log)
         place_cursor = True
-        for m in it:
+        for m in re.finditer(self.error, log):
             line   = int(m.group(2))-1
             detail = m.group(3)[4:]
             self.buffer.highlight("Error", line, detail)
-            place_cursor = False
-        place_cursor = False
 
-        it = re.finditer(self.warning,log)
-        for m in it:
+        for m in re.finditer(self.warning, log):
             line   = int(m.group(3))-1
             detail = m.group(2)
             if msg == "Reference":
@@ -130,8 +136,7 @@ class LogProcessor:
                 detail = "\\cite{" + detail + "}"
             self.buffer.highlight("Warning", line, detail)
 
-        it = re.finditer(self.badbox, log)
-        for m in it:
+        for m in re.finditer(self.badbox, log):
             line   = int(m.group(1))-1
             detail = ""
             self.buffer.highlight("Warning", line, detail)

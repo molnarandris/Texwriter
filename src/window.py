@@ -86,6 +86,11 @@ class TexwriterWindow(Gtk.ApplicationWindow):
             toast = Adw.Toast.new("Compile succeeded")
         else:
             toast = Adw.Toast.new("Compile failed")
+            buf = self.sourceview.get_buffer()
+            if buf.errors:
+                it = buf.errors[0]
+                self.sourceview.scroll_to_iter(it, 0.3, False, 0, 0)
+                buf.place_cursor(it)
         toast.set_timeout(1)
         self.toast_overlay.add_toast(toast)
 
