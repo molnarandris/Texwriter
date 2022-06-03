@@ -17,7 +17,7 @@
 
 import os, re, gi
 gi.require_version('GtkSource', '5')
-from gi.repository import Gtk, GObject, GtkSource, Gio, GLib, Gdk
+from gi.repository import Gtk, GObject, GtkSource, Gio, GLib, Gdk, Adw
 from .pdfviewer import PdfViewer
 from .utilities import ProcessRunner
 from .documentmanager import  DocumentManager
@@ -29,13 +29,14 @@ class TexwriterWindow(Gtk.ApplicationWindow):
     __gtype_name__ = 'TexwriterWindow'
 
     GObject.type_register(GtkSource.View)
-    paned        = Gtk.Template.Child()
-    sourceview   = Gtk.Template.Child()
-    header_bar   = Gtk.Template.Child()
-    pdfview      = Gtk.Template.Child()
-    title        = Gtk.Template.Child()
-    btn_compile  = Gtk.Template.Child()
-    logview      = Gtk.Template.Child()
+    paned         = Gtk.Template.Child()
+    sourceview    = Gtk.Template.Child()
+    header_bar    = Gtk.Template.Child()
+    pdfview       = Gtk.Template.Child()
+    title         = Gtk.Template.Child()
+    btn_compile   = Gtk.Template.Child()
+    logview       = Gtk.Template.Child()
+    toast_overlay = Gtk.Template.Child()
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -81,6 +82,12 @@ class TexwriterWindow(Gtk.ApplicationWindow):
     def on_compiled(self, sender, success):
         self.btn_compile.set_icon_name("media-playback-start")
         self.btn_compile.set_action_name("win.compile")
+        if success:
+            toast = Adw.Toast.new("Compile succeeded")
+        else:
+            toast = Adw.Toast.new("Compile failed")
+        toast.set_timeout(1)
+        self.toast_overlay.add_toast(toast)
 
     def open_pdf(self,sender,path):
         self.pdfview.open_file(path)

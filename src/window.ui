@@ -25,30 +25,34 @@
       </object>
     </child>
     <child>
-      <object class="GtkPaned" id="paned">
-        <property name="position">300</property>
-        <child>
-          <object class="GtkScrolledWindow">
+      <object class="AdwToastOverlay" id="toast_overlay">
+        <property name="child">
+          <object class="GtkPaned" id="paned">
+            <property name="position">300</property>
             <child>
-              <object class="GtkSourceView" id="sourceview">
-                <property name="wrap_mode">word</property>
-                <property name="highlight_current_line">True</property>
+              <object class="GtkScrolledWindow">
+                <child>
+                  <object class="GtkSourceView" id="sourceview">
+                    <property name="wrap_mode">word</property>
+                    <property name="highlight_current_line">True</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkStack" id="pdfstack">
+                <child>
+                  <object class="PdfViewer" id="pdfview">
+                  </object>
+                </child>
+                <child>
+                  <object  class="LogView" id="logview">
+                  </object>
+                </child>
               </object>
             </child>
           </object>
-        </child>
-        <child>
-          <object class="GtkStack" id="pdfstack">
-            <child>
-              <object class="PdfViewer" id="pdfview">
-              </object>
-            </child>
-            <child>
-              <object  class="LogView" id="logview">
-              </object>
-            </child>
-          </object>
-        </child>
+        </property>
       </object>
     </child>
   </template>
