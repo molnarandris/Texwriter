@@ -33,6 +33,7 @@ texwriter_sources = [
   'utilities.py',
   'documentmanager.py',
   'latexbuffer.py',
+  'logview.py',
 ]
 
 install_data(texwriter_sources, install_dir: moduledir)

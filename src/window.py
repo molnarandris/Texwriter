@@ -22,6 +22,7 @@ from .pdfviewer import PdfViewer
 from .utilities import ProcessRunner
 from .documentmanager import  DocumentManager
 from .latexbuffer import LatexBuffer
+from .logview import LogView
 
 @Gtk.Template(resource_path='/com/github/molnarandris/texwriter/window.ui')
 class TexwriterWindow(Gtk.ApplicationWindow):
@@ -34,6 +35,7 @@ class TexwriterWindow(Gtk.ApplicationWindow):
     pdfview      = Gtk.Template.Child()
     title        = Gtk.Template.Child()
     btn_compile  = Gtk.Template.Child()
+    logview      = Gtk.Template.Child()
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

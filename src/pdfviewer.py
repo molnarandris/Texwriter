@@ -5,12 +5,18 @@ from .utilities import ProcessRunner
 
 
 # Currently very stupid: rendering everythin at once and keeping all in memory
-class PdfViewer(Gtk.Widget):
+@Gtk.Template(resource_path='/com/github/molnarandris/texwriter/pdfviewer.ui')
+class PdfViewer(Gtk.Stack):
     __gtype_name__ = 'PdfViewer'
 
     __gsignals__ = {
-        'synctex-bck': (GObject.SIGNAL_RUN_FIRST, None, (int,))
+        'synctex-bck': (GObject.SIGNAL_RUN_FIRST, None, (int,)),
+        'loaded' : (GObject.SIGNAL_RUN_FIRST, None, (bool,)),
     }
+
+    scroll    = Gtk.Template.Child()
+    box       = Gtk.Template.Child()
+    nopdf     = Gtk.Template.Child()
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -22,21 +28,13 @@ class PdfViewer(Gtk.Widget):
         self.y = None
         self.path = None
 
-        self.set_valign(Gtk.Align.CENTER)
-        self.set_halign(Gtk.Align.CENTER)
-        self.set_margin_top(10)
-        self.set_margin_bottom(10)
-
-        layout = Gtk.BoxLayout()
-        layout.set_orientation(Gtk.Orientation.VERTICAL)
-        layout.set_spacing(10)
-        self.set_layout_manager(layout)
+        self.set_visible_child_name("empty")
 
         controller = Gtk.EventControllerScroll()
         controller.connect("scroll", self.on_scroll)
         #controller.set_propagation_phase(Gtk.PropagationPhase.BUBBLE)
         controller.set_flags(Gtk.EventControllerScrollFlags.VERTICAL)
-        self.add_controller(controller)
+        self.box.add_controller(controller)
 
         controller = Gtk.GestureClick()
         controller.connect("pressed", self.on_click)
@@ -52,62 +50,48 @@ class PdfViewer(Gtk.Widget):
         self.x = x
         self.y = y
 
-    # currently not working...
-    def do_dispose(self):
-        child = self.get_first_child()
-        while child:
-            child.unparent()
-            child = self.get_first_child()
-        super().do_dispose()
-
     def open_file(self, path):
-        child = self.get_first_child()
+        child = self.box.get_first_child()
         while child:
-            child.unparent()
-            child = self.get_first_child()
+            self.box.remove(child)
+            child = self.box.get_first_child()
+
         self.path = path
         uri = 'file://' + path
         try:
             doc = Poppler.Document.new_from_file(uri)
         except:
-           print("No pdf file")
+           self.emit("loaded", False)
+           self.set_visible_child_name("empty")
            return
         for i in range(doc.get_n_pages()):
-            overlay = Gtk.Overlay()
-            overlay.set_parent(self)
             pg = PdfPage(doc.get_page(i))
+            overlay = Gtk.Overlay()
             overlay.set_child(pg)
+            self.box.append(overlay)
         self.doc = doc
+        self.set_visible_child_name("pdf")
+        self.emit("loaded", True)
 
 
     # Far from perfect, but more or less works. Should not render right at zoom.
     def on_scroll(self, controller, dx, dy):
         if not (controller.get_current_event_state() & Gdk.ModifierType.CONTROL_MASK):
             return Gdk.EVENT_PROPAGATE
-        viewport = self.get_parent()
+        viewport = self.box.get_parent()
         hadj = viewport.get_hadjustment()
         vadj = viewport.get_vadjustment()
         h = hadj.get_value()
         v = vadj.get_value()
-        x = self.x - h
-        y = self.y - v
-        if dy>0:
-            self.scale *= 1.05
-            h = self.x*1.05 - x
-            v = self.y*1.05 - y
-            self.x *=1.05
-            self.y *=1.05
-        else:
-            self.scale /= 1.05
-            h = self.x/1.05 - x
-            v = self.y/1.05 - y
-            self.x/=1.05
-            self.y/=1.05
-        for child in self:
+        s = 1.05 if dy>0 else 1.0/1.05
+        self.scale *= s
+        self.x *=s
+        self.y *=s
+        for child in self.box:
             for c in child:
                 c.set_scale(self.scale)
-        hadj.set_value(h)
-        vadj.set_value(v)
+        hadj.set_value((h + self.x) * s - self.x)
+        vadj.set_value((v + self.y) * s - self.y)
         return Gdk.EVENT_STOP
 
     def on_click(self, controller, n, x, y):
@@ -124,13 +108,13 @@ class PdfViewer(Gtk.Widget):
         point = Graphene.Point()
         point.init(0,y)
         _,p = pg.compute_point(self,point)
-        viewport = self.get_parent()
+        viewport = self.box.get_parent()
         vadj = viewport.get_vadjustment()
         vadj.set_value(p.y-vadj.get_page_size()*0.302)
 
     def get_page(self,n):
         i = 1
-        child = self.get_first_child()
+        child = self.box.get_first_child()
         while i<n:
             child = child.get_next_sibling()
             i+=1
@@ -229,4 +213,12 @@ class PdfPage(Gtk.Widget):
         ctx.scale(self.scale,self.scale)
         self.pg.render(ctx)
 
+class NoPdfView(Gtk.Box):
+    __gtype_name__ = "NoPdfView"
 
+    def __init__(self):
+        super().__init__()
+        self.set_orientation(Gtk.Orientation.VERTICAL)
+        label = Gtk.Label.new("No pdf is available")
+        self.append(label)
+        

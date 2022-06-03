@@ -38,9 +38,13 @@
           </object>
         </child>
         <child>
-          <object class="GtkScrolledWindow" id="pdfscroll">
+          <object class="GtkStack" id="pdfstack">
             <child>
               <object class="PdfViewer" id="pdfview">
+              </object>
+            </child>
+            <child>
+              <object  class="LogView" id="logview">
               </object>
             </child>
           </object>
