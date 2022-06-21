@@ -2,11 +2,33 @@ pkgdatadir = join_paths(get_option('prefix'), get_option('datadir'), meson.proje
 moduledir = join_paths(pkgdatadir, 'texwriter')
 gnome = import('gnome')
 
+
+blps = [
+  'window.blp',
+  'pdfviewer.blp',
+]
+
+uis = []
+foreach blp : blps
+  uis += blp.replace('.blp', '.ui')
+endforeach
+
+
+blueprints = custom_target('blueprints',
+  input: blps,
+  output: uis,
+  command: [find_program('blueprint-compiler'), 'batch-compile', '@OUTDIR@', '@CURRENT_SOURCE_DIR@', '@INPUT@'],
+)
+
+
+
+
 gnome.compile_resources('texwriter',
   'texwriter.gresource.xml',
   gresource_bundle: true,
   install: true,
   install_dir: pkgdatadir,
+  dependencies: blueprints,
 )
 
 python = import('python')

@@ -31,7 +31,6 @@ class TexwriterWindow(Gtk.ApplicationWindow):
     GObject.type_register(GtkSource.View)
     paned         = Gtk.Template.Child()
     sourceview    = Gtk.Template.Child()
-    header_bar    = Gtk.Template.Child()
     pdfview       = Gtk.Template.Child()
     title         = Gtk.Template.Child()
     btn_compile   = Gtk.Template.Child()

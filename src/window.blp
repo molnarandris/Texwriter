@@ -1,0 +1,81 @@
+using Gtk 4.0;
+using Adw 1;
+using GtkSource 5;
+
+template TexwriterWindow {
+  default-width: 600;
+  default-height: 300;
+
+  [titlebar]
+  HeaderBar {
+    title-widget: .TitleWidget title {};
+
+    [end]
+    MenuButton {
+      icon-name: "open-menu-symbolic";
+      menu-model: primary_menu;
+    }
+
+    [end]
+    Button btn_compile {
+      icon-name: "media-playback-start-symbolic";
+      action-name: "win.compile";
+    }
+  }
+
+  [content]
+  Adw.ToastOverlay toast_overlay {
+    Paned paned {
+      position: 300;
+      resize-start-child: true;
+      resize-end-child: true;
+
+      [start]
+      Gtk.ScrolledWindow {
+      	GtkSource.View sourceview {
+      	  wrap-mode: word;
+      	  highlight-current-line: true;
+      	}
+      }
+
+      [end]
+      Gtk.Stack pdfstack {
+      	StackPage {
+      	  name: "pdfview";
+      	  child: .PdfViewer pdfview {};
+      	}
+      	StackPage {
+      	  name: "logview";
+          child: .LogView logview {};
+      	}
+      }
+    }
+  }
+}
+
+menu primary_menu {
+  section {
+    item {
+      label: _("Open");
+      action: "win.open";
+    }
+    item {
+      label: _("Close");
+      action: "win.close";
+    }
+  }
+  section {
+    item {
+      label: _("Preferences");
+      action: "app.preferences";
+    }
+    item {
+      label: _("Keyboard shortcuts");
+      action: "win.show-help-overlay";
+    }
+    item {
+      label: _("About texwriter");
+      action: "app.about";
+    }
+  }
+}

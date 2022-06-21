@@ -1,0 +1,22 @@
+using Gtk 4.0;
+
+template PdfViewer: Stack{
+  StackPage {
+    name: "pdf";
+    child: ScrolledWindow scroll{
+      Box box{
+        orientation: vertical;
+        valign: center;
+        halign: center;
+        margin-top: 10;
+        margin-bottom: 10;
+        spacing: 10;
+      }
+    };
+  }
+  StackPage {
+    name: "empty";
+    child: .NoPdfView nopdf{
+    };
+  }
+}
