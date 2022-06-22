@@ -6,7 +6,7 @@ from .utilities import ProcessRunner
 
 # Currently very stupid: rendering everythin at once and keeping all in memory
 @Gtk.Template(resource_path='/com/github/molnarandris/texwriter/pdfviewer.ui')
-class PdfViewer(Gtk.Stack):
+class PdfViewer(Gtk.Widget):
     __gtype_name__ = 'PdfViewer'
 
     __gsignals__ = {
@@ -14,9 +14,9 @@ class PdfViewer(Gtk.Stack):
         'loaded' : (GObject.SIGNAL_RUN_FIRST, None, (bool,)),
     }
 
+    stack     = Gtk.Template.Child()
     scroll    = Gtk.Template.Child()
     box       = Gtk.Template.Child()
-    nopdf     = Gtk.Template.Child()
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -28,7 +28,10 @@ class PdfViewer(Gtk.Stack):
         self.y = None
         self.path = None
 
-        self.set_visible_child_name("empty")
+        layout = Gtk.BinLayout()
+        self.set_layout_manager(layout)
+
+        self.stack.set_visible_child_name("empty")
 
         controller = Gtk.EventControllerScroll()
         controller.connect("scroll", self.on_scroll)
@@ -213,12 +216,4 @@ class PdfPage(Gtk.Widget):
         ctx.scale(self.scale,self.scale)
         self.pg.render(ctx)
 
-class NoPdfView(Gtk.Box):
-    __gtype_name__ = "NoPdfView"
 
-    def __init__(self):
-        super().__init__()
-        self.set_orientation(Gtk.Orientation.VERTICAL)
-        label = Gtk.Label.new("No pdf is available")
-        self.append(label)
-        

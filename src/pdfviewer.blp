@@ -1,22 +1,28 @@
 using Gtk 4.0;
+using Adw 1;
 
-template PdfViewer: Stack{
-  StackPage {
-    name: "pdf";
-    child: ScrolledWindow scroll{
-      Box box{
-        orientation: vertical;
-        valign: center;
-        halign: center;
-        margin-top: 10;
-        margin-bottom: 10;
-        spacing: 10;
-      }
-    };
-  }
-  StackPage {
-    name: "empty";
-    child: .NoPdfView nopdf{
-    };
+template PdfViewer: Widget{
+  Stack stack {
+    StackPage {
+      name: "pdf";
+      child: ScrolledWindow scroll{
+        Box box{
+          orientation: vertical;
+          valign: center;
+          halign: center;
+          margin-top: 10;
+          margin-bottom: 10;
+          spacing: 10;
+        }
+      };
+    }
+    StackPage {
+      name: "empty";
+      child: Adw.StatusPage {
+        title: "No pdf document to display";
+        description: "Open a tex source file and compile it";
+        icon-name: "document-open";
+      };
+    }
   }
 }
