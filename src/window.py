@@ -56,7 +56,7 @@ class TexwriterWindow(Gtk.ApplicationWindow):
 
         actions = [
             ('open', self.on_open_action, ['<primary>o']),
-            ('close', self.on_close_action, ['<primary>w']),
+            ('close', self.on_close_tab, ['<primary>w']),
             ('save', self.on_save_action, ['<primary>s']),
             ('compile', self.on_compile_action, ['F5']),
             #('synctex-fwd', self.synctex_fwd, ['F7']),
@@ -132,8 +132,11 @@ class TexwriterWindow(Gtk.ApplicationWindow):
             dialog.connect("finished", lambda _, f: self.docmanager.save_file(f))
             dialog.show()
 
-    def on_close_action(self, widget, _):
+    def on_close_tab(self, widget, _):
         pg = self.tab_view.get_selected_page()
+        if pg is None:
+            self.close()
+            return
         self.tab_view.close_page(pg)
         if self.tab_view.get_n_pages() == 0:
             self.texstack.set_visible_child_name("empty")
