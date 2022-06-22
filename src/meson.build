@@ -3,20 +3,13 @@ moduledir = join_paths(pkgdatadir, 'texwriter')
 gnome = import('gnome')
 
 
-blps = [
-  'window.blp',
-  'pdfviewer.blp',
-]
-
-uis = []
-foreach blp : blps
-  uis += blp.replace('.blp', '.ui')
-endforeach
-
-
 blueprints = custom_target('blueprints',
-  input: blps,
-  output: uis,
+  input: files(
+    'window.blp',
+    'pdfviewer.blp',
+    'sourceview.blp',
+  ),
+  output: '.',
   command: [find_program('blueprint-compiler'), 'batch-compile', '@OUTDIR@', '@CURRENT_SOURCE_DIR@', '@INPUT@'],
 )
 
@@ -26,9 +19,9 @@ blueprints = custom_target('blueprints',
 gnome.compile_resources('texwriter',
   'texwriter.gresource.xml',
   gresource_bundle: true,
+  dependencies: blueprints,
   install: true,
   install_dir: pkgdatadir,
-  dependencies: blueprints,
 )
 
 python = import('python')
@@ -56,6 +49,7 @@ texwriter_sources = [
   'documentmanager.py',
   'latexbuffer.py',
   'logview.py',
+  'sourceview.py',
 ]
 
 install_data(texwriter_sources, install_dir: moduledir)

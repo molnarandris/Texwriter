@@ -23,19 +23,20 @@ from .utilities import ProcessRunner
 from .documentmanager import  DocumentManager
 from .latexbuffer import LatexBuffer
 from .logview import LogView
+from .sourceview import TexwriterSource
 
 @Gtk.Template(resource_path='/com/github/molnarandris/texwriter/window.ui')
 class TexwriterWindow(Gtk.ApplicationWindow):
     __gtype_name__ = 'TexwriterWindow'
 
-    GObject.type_register(GtkSource.View)
     paned         = Gtk.Template.Child()
-    sourceview    = Gtk.Template.Child()
     pdfview       = Gtk.Template.Child()
     title         = Gtk.Template.Child()
     btn_compile   = Gtk.Template.Child()
     logview       = Gtk.Template.Child()
     toast_overlay = Gtk.Template.Child()
+    texstack      = Gtk.Template.Child()
+    tab_view      = Gtk.Template.Child()
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -60,23 +61,30 @@ class TexwriterWindow(Gtk.ApplicationWindow):
             ('compile', self.on_compile_action, ['F5']),
             ('synctex-fwd', self.synctex_fwd, ['F7']),
             ('cancel', self.on_cancel_action, []),
+            ('new-draft', self.on_new_draft, []),
         ]
 
         for a in actions: self.create_action(*a)
+        self.texstack.set_visible_child_name("empty")
+        #buffer = LatexBuffer()
+        #self.sourceview.set_buffer(buffer)
+        #buffer.connect("changed", lambda _: self.title.set_saved(False))
 
-        buffer = LatexBuffer()
-        self.sourceview.set_buffer(buffer)
-        buffer.connect("changed", lambda _: self.title.set_saved(False))
+        #docmanager = DocumentManager(buffer)
+        #docmanager.connect("open-success", self.open_success_cb)
+        #docmanager.connect("save-success", lambda _: self.title.set_saved(True))
+        #docmanager.connect("open-pdf", self.open_pdf)
+        #docmanager.connect("compiled", self.on_compiled)
 
-        docmanager = DocumentManager(buffer)
-        docmanager.connect("open-success", self.open_success_cb)
-        docmanager.connect("save-success", lambda _: self.title.set_saved(True))
-        docmanager.connect("open-pdf", self.open_pdf)
-        docmanager.connect("compiled", self.on_compiled)
-
-        self.docmanager = docmanager
+        #self.docmanager = docmanager
 
         self.pdfview.connect("synctex-bck", self.synctex_bck)
+
+    def on_new_draft(self, widget, _):
+        src = TexwriterSource()
+        self.tab_view.append(src)
+        self.texstack.set_visible_child_name("view")
+
 
     def on_compiled(self, sender, success):
         self.btn_compile.set_icon_name("media-playback-start")

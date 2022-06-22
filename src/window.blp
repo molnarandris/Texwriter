@@ -1,6 +1,5 @@
 using Gtk 4.0;
 using Adw 1;
-using GtkSource 5;
 
 template TexwriterWindow {
   default-width: 600;
@@ -9,6 +8,12 @@ template TexwriterWindow {
   [titlebar]
   HeaderBar {
     title-widget: .TitleWidget title {};
+
+    [start]
+    Button btn_tab {
+      icon-name: "tab-new-symbolic";
+      action-name: "win.new-draft";
+    }
 
     [end]
     MenuButton {
@@ -31,11 +36,29 @@ template TexwriterWindow {
       resize-end-child: true;
 
       [start]
-      Gtk.ScrolledWindow {
-      	GtkSource.View sourceview {
-      	  wrap-mode: word;
-      	  highlight-current-line: true;
-      	}
+      Gtk.Stack texstack{
+        StackPage {
+          name: "view";
+          child: Box {
+            orientation: vertical;
+            Adw.TabBar tab_bar {
+              view: tab_view;
+            }
+            Adw.TabView tab_view {
+              hexpand: true;
+              vexpand: true;
+            }
+          };
+        }
+
+        StackPage {
+          name: "empty";
+          child: Adw.StatusPage {
+            title: "No document to display";
+            description: "Start or Open a document";
+            icon-name: "document-open";
+          };
+        }
       }
 
       [end]

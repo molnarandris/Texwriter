@@ -1,0 +1,11 @@
+using Gtk 4.0;
+using GtkSource 5;
+
+
+template TexwriterSource: Gtk.ScrolledWindow {
+  vexpand: true;
+  GtkSource.View sourceview {
+    wrap-mode: word;
+    highlight-current-line: true;
+  }
+}
