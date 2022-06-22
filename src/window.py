@@ -59,9 +59,9 @@ class TexwriterWindow(Gtk.ApplicationWindow):
             ('close', self.on_close_action, ['<primary>w']),
             ('save', self.on_save_action, ['<primary>s']),
             ('compile', self.on_compile_action, ['F5']),
-            ('synctex-fwd', self.synctex_fwd, ['F7']),
+            #('synctex-fwd', self.synctex_fwd, ['F7']),
             ('cancel', self.on_cancel_action, []),
-            ('new-draft', self.on_new_draft, []),
+            ('new-tab', self.on_new_tab, []),
         ]
 
         for a in actions: self.create_action(*a)
@@ -78,11 +78,13 @@ class TexwriterWindow(Gtk.ApplicationWindow):
 
         #self.docmanager = docmanager
 
-        self.pdfview.connect("synctex-bck", self.synctex_bck)
+        #self.pdfview.connect("synctex-bck", self.synctex_bck)
 
-    def on_new_draft(self, widget, _):
+    def on_new_tab(self, widget, _):
         src = TexwriterSource()
-        self.tab_view.append(src)
+        tab_page = self.tab_view.append(src)
+        flag = GObject.BindingFlags.DEFAULT | GObject.BindingFlags.SYNC_CREATE
+        src.bind_property("filename", tab_page, "title", flag)
         self.texstack.set_visible_child_name("view")
 
 
@@ -105,38 +107,6 @@ class TexwriterWindow(Gtk.ApplicationWindow):
         self.pdfview.open_file(path)
         self.activate_action("win.synctex-fwd", None)
 
-    def synctex_bck(self,sender, line):
-        buf = self.sourceview.get_buffer()
-        _, it = buf.get_iter_at_line_offset(line-1,0)
-        buf.place_cursor(it)
-        self.sourceview.scroll_to_iter(it,0,True, 0, 0.382)
-
-    def synctex_fwd(self, sender, _):
-        def on_synctex_finished(sender):
-            result = re.search("Page:(.*)", sender.stdout)
-            page = int(result.group(1))
-            result = re.search("x:(.*)", sender.stdout)
-            x = float(result.group(1))
-            result = re.search("y:(.*)", sender.stdout)
-            y = float(result.group(1))
-            result = re.search("h:(.*)", sender.stdout)
-            h = float(result.group(1))
-            result = re.search("v:(.*)", sender.stdout)
-            v = float(result.group(1))
-            result = re.search("H:(.*)", sender.stdout)
-            H = float(result.group(1))
-            result = re.search("W:(.*)", sender.stdout)
-            W = float(result.group(1))
-            self.pdfview.synctex_fwd(page,x,y,h,v,H,W)
-
-        buf = self.sourceview.get_buffer()
-        it = buf.get_iter_at_mark(buf.get_insert())
-        path = self.docmanager.file.get_location().get_path()
-        pos = str(it.get_line()) + ":" + str(it.get_line_offset()) + ":" + path
-        path = os.path.splitext(path)[0] + '.pdf'
-        cmd = ['flatpak-spawn', '--host', 'synctex', 'view', '-i', pos, '-o', path]
-        proc = ProcessRunner(cmd)
-        proc.connect('finished', on_synctex_finished)
 
     def open_success_cb(self, sender, path):
         self.title.set_saved(True)
@@ -163,7 +133,10 @@ class TexwriterWindow(Gtk.ApplicationWindow):
             dialog.show()
 
     def on_close_action(self, widget, _):
-        print("close file")
+        pg = self.tab_view.get_selected_page()
+        self.tab_view.close_page(pg)
+        if self.tab_view.get_n_pages() == 0:
+            self.texstack.set_visible_child_name("empty")
 
     def on_compile_action(self, widget, _):
         self.docmanager.to_compile = True

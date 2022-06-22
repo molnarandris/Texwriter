@@ -84,6 +84,33 @@ class DocumentManager(GObject.GObject):
     def on_log_finished(self, logproc):
         self.emit("compiled", False)
 
+    def synctex_fwd(self, sender, _):
+        def on_synctex_finished(sender):
+            result = re.search("Page:(.*)", sender.stdout)
+            page = int(result.group(1))
+            result = re.search("x:(.*)", sender.stdout)
+            x = float(result.group(1))
+            result = re.search("y:(.*)", sender.stdout)
+            y = float(result.group(1))
+            result = re.search("h:(.*)", sender.stdout)
+            h = float(result.group(1))
+            result = re.search("v:(.*)", sender.stdout)
+            v = float(result.group(1))
+            result = re.search("H:(.*)", sender.stdout)
+            H = float(result.group(1))
+            result = re.search("W:(.*)", sender.stdout)
+            W = float(result.group(1))
+            self.pdfview.synctex_fwd(page,x,y,h,v,H,W)
+
+        buf = self.sourceview.get_buffer()
+        it = buf.get_iter_at_mark(buf.get_insert())
+        path = self.docmanager.file.get_location().get_path()
+        pos = str(it.get_line()) + ":" + str(it.get_line_offset()) + ":" + path
+        path = os.path.splitext(path)[0] + '.pdf'
+        cmd = ['flatpak-spawn', '--host', 'synctex', 'view', '-i', pos, '-o', path]
+        proc = ProcessRunner(cmd)
+        proc.connect('finished', on_synctex_finished)
+
 
 class LogProcessor(GObject.GObject):
 
