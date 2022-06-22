@@ -1,0 +1,14 @@
+Adapt to Adw.Tabview:
+  - Create a sourceview widget
+  - Move it to a new file
+  - Clean up the window
+  - Make it work!
+
+Clean up pdfview:
+  - Empty page to Adw.StatusPage
+
+SourceView:
+  - Notify user if file changed on disk
+
+Completion:
+  - Figure out how it works
