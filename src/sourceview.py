@@ -5,7 +5,7 @@ from .latexbuffer import LatexBuffer
 from .texfile import TexFile
 
 @Gtk.Template(resource_path='/com/github/molnarandris/texwriter/sourceview.ui')
-class TexwriterSource(Gtk.ScrolledWindow):
+class TexwriterSource(Gtk.Widget):
     __gtype_name__ = "TexwriterSource"
 
     GObject.type_register(GtkSource.View)
@@ -17,6 +17,8 @@ class TexwriterSource(Gtk.ScrolledWindow):
 
     def __init__(self):
         super().__init__()
+        layout = Gtk.BinLayout()
+        self.set_layout_manager(layout)
         buffer = LatexBuffer()
         self.sourceview.set_buffer(buffer)
         buffer.connect("changed", lambda _ : self.set_property("modified", True))
