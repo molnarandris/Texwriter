@@ -22,9 +22,21 @@ template TexwriterWindow {
     }
 
     [end]
-    Button btn_compile {
-      icon-name: "media-playback-start-symbolic";
-      action-name: "win.compile";
+    Stack btn_stack {
+      StackPage {
+      	name: "compile";
+        child: Button {
+          icon-name: "media-playback-start-symbolic";
+          action-name: "win.compile";
+        };
+      }
+      StackPage {
+      	name: "cancel";
+        child: Button {
+          icon-name: "media-playback-stop-symbolic";
+          action-name: "win.cancel";
+        };
+      }
     }
   }
 

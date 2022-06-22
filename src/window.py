@@ -32,7 +32,7 @@ class TexwriterWindow(Gtk.ApplicationWindow):
     paned         = Gtk.Template.Child()
     pdfview       = Gtk.Template.Child()
     title         = Gtk.Template.Child()
-    btn_compile   = Gtk.Template.Child()
+    btn_stack     = Gtk.Template.Child()
     logview       = Gtk.Template.Child()
     toast_overlay = Gtk.Template.Child()
     texstack      = Gtk.Template.Child()
@@ -89,8 +89,7 @@ class TexwriterWindow(Gtk.ApplicationWindow):
 
 
     def on_compiled(self, sender, success):
-        self.btn_compile.set_icon_name("media-playback-start")
-        self.btn_compile.set_action_name("win.compile")
+        self.btn_stack.set_visible_child_name("compile")
         if success:
             toast = Adw.Toast.new("Compile succeeded")
         else:
@@ -144,8 +143,7 @@ class TexwriterWindow(Gtk.ApplicationWindow):
     def on_compile_action(self, widget, _):
         self.docmanager.to_compile = True
         self.activate_action("win.save")
-        self.btn_compile.set_icon_name("media-playback-stop")
-        self.btn_compile.set_action_name("win.cancel")
+        self.btn_stack.set_visible_child_name("cancel")
 
     def on_cancel_action(self, widget, _):
         self.documentmanager.cancel()
