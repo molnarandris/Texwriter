@@ -81,11 +81,20 @@ class TexwriterWindow(Gtk.ApplicationWindow):
         #self.pdfview.connect("synctex-bck", self.synctex_bck)
 
     def on_new_tab(self, widget, _):
+
+        def on_src_modified(obj, gparamstring, pg):
+            if obj.modified == True:
+                icon = Gio.ThemedIcon.new("document-modified-symbolic")
+                pg.set_icon(icon)
+            else:
+                pg.set_icon(None)
+
         src = TexwriterSource()
         tab_page = self.tab_view.append(src)
         flag = GObject.BindingFlags.DEFAULT | GObject.BindingFlags.SYNC_CREATE
         src.bind_property("filename", tab_page, "title", flag)
         self.texstack.set_visible_child_name("view")
+        src.connect("notify::modified", on_src_modified, tab_page)
 
 
     def on_compiled(self, sender, success):

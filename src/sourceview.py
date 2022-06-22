@@ -11,10 +11,12 @@ class TexwriterSource(Gtk.ScrolledWindow):
     sourceview    = Gtk.Template.Child()
 
     filename = GObject.Property(type=str, default='New Document')
+    modified = GObject.Property(type=bool, default=False)
 
     def __init__(self):
         super().__init__()
-        self._filename = "New Document"
+        buf = self.sourceview.get_buffer()
+        buf.connect("changed", lambda _ : self.set_property("modified", True))
         
     def synctex_bck(self,sender, line):
         buf = self.sourceview.get_buffer()
