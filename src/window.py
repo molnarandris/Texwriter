@@ -132,12 +132,10 @@ class TexwriterWindow(Gtk.ApplicationWindow):
     def on_open_response(self, sender, file):
         pg = self.tab_view.get_selected_page() or self.create_new_tab()
         src = pg.get_child()
-        if src.title == "New Document" and src.modified == False:
-            src.open_file(file)
-        else:
+        if src.modified or src.title != "New Document":
             pg = self.create_new_tab()
             src = pg.get_child()
-            src.open_file(file)
+        src.load_file(file)
 
 
     def on_save_action(self, widget, _):

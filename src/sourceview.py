@@ -24,22 +24,22 @@ class TexwriterSource(Gtk.Widget):
         buffer.connect("changed", lambda _ : self.set_property("modified", True))
         self.file = TexFile()
 
-    def open_file(self,file):
+    def load_finish_cb(self, loader, result):
+        success = loader.load_finish(result)
+        path = loader.get_location().get_path()
+        if success:
+            self.file.tex_path = path
+            self.set_property("title", self.file.title)
+            self.set_property("modified", False)
+        else:
+            print("Could not load file: " + path)
+        return success
 
-        def load_finish_cb(loader, result):
-            success = loader.load_finish(result)
-            path = loader.get_location().get_path()
-            if success:
-                self.file.tex_path = path
-                self.set_property("title", self.file.title)
-                self.set_property("modified", False)
-            else:
-                print("Could not load file: " + path)
-            return success
-
+    def load_file(self,file):
         buffer = self.sourceview.get_buffer()
         loader = GtkSource.FileLoader.new(buffer, file)
-        loader.load_async(io_priority = GLib.PRIORITY_DEFAULT, callback = load_finish_cb)
+        loader.load_async(io_priority = GLib.PRIORITY_DEFAULT,
+                          callback    = self.load_finish_cb)
 
 
     def synctex_bck(self,sender, line):
