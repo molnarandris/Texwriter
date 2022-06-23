@@ -114,38 +114,21 @@ class TexwriterWindow(Gtk.ApplicationWindow):
         self.pdfview.open_file(path)
         self.activate_action("win.synctex-fwd", None)
 
-
-    def open_success_cb(self, sender, path):
-        self.title.set_saved(True)
-        subtitle,title = os.path.split(path)
-        self.title.set_title_string(title)
-        self.title.set_subtitle_string(subtitle)
-        self.pdfview.open_file(os.path.splitext(path)[0] + '.pdf')
-
-
     def on_open_action(self, widget, _):
-
-        dialog = TexFileChooser("open", self)
-        dialog.connect("finished", self.on_open_response)
-        dialog.run()
-
-    def on_open_response(self, sender, file):
         pg = self.tab_view.get_selected_page() or self.create_new_tab()
         src = pg.get_child()
         if src.modified or src.title != "New Document":
             pg = self.create_new_tab()
             src = pg.get_child()
-        src.load_file(file)
+        src.open()
 
 
     def on_save_action(self, widget, _):
-
-        if self.docmanager.file is not None:
-            self.docmanager.save_file()
-        else:
-            dialog = TexFileChooser("save", self)
-            dialog.connect("finished", lambda _, f: self.docmanager.save_file(f))
-            dialog.show()
+        pg = self.tab_view.get_selected_page()
+        if pg is None:
+            return
+        src = pg.get_child()
+        src.save()
 
     def on_close_tab(self, widget, _):
         pg = self.tab_view.get_selected_page()
@@ -179,44 +162,6 @@ class TexwriterWindow(Gtk.ApplicationWindow):
         if shortcuts:
             self.get_application().set_accels_for_action(f"win.{name}", shortcuts)
 
-
-class TexFileChooser(GObject.GObject):
-
-    __gsignals__ = {
-        'finished': (GObject.SIGNAL_RUN_FIRST, None, (GtkSource.File,))
-    }
-
-    def __init__(self, action, parent):
-        super().__init__()
-        if action == "open":
-            flag = Gtk.FileChooserAction.OPEN
-            text = "Open file"
-        elif action == "save":
-            flag = Gtk.FileChooserAction.SAVE
-            text = "Save file"
-
-        dialog = Gtk.FileChooserNative.new(text, parent, flag, None, None)
-
-        filter_tex = Gtk.FileFilter()
-        filter_tex.set_name("Latex")
-        filter_tex.add_mime_type("text/x-tex")
-        dialog.add_filter(filter_tex)
-
-        filter_any = Gtk.FileFilter()
-        filter_any.set_name("Any files")
-        filter_any.add_pattern("*")
-        dialog.add_filter(filter_any)
-        dialog.connect("response", self.dialog_response)
-        self.dialog = dialog # to keep dialog alive until response is called
-
-    def dialog_response(self, dialog, response):
-        if response == Gtk.ResponseType.ACCEPT:
-            file = GtkSource.File.new()
-            file.set_location(dialog.get_file())
-            self.emit("finished", file)
-
-    def run(self):
-        self.dialog.show()
 
 class TitleWidget(Gtk.Box):
     __gtype_name__ = "TitleWidget"
