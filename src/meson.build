@@ -50,6 +50,7 @@ texwriter_sources = [
   'latexbuffer.py',
   'logview.py',
   'sourceview.py',
+  'texfile.py',
 ]
 
 install_data(texwriter_sources, install_dir: moduledir)

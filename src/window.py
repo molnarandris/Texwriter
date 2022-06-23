@@ -21,7 +21,6 @@ from gi.repository import Gtk, GObject, GtkSource, Gio, GLib, Gdk, Adw
 from .pdfviewer import PdfViewer
 from .utilities import ProcessRunner
 from .documentmanager import  DocumentManager
-from .latexbuffer import LatexBuffer
 from .logview import LogView
 from .sourceview import TexwriterSource
 
@@ -61,14 +60,11 @@ class TexwriterWindow(Gtk.ApplicationWindow):
             ('compile', self.on_compile_action, ['F5']),
             #('synctex-fwd', self.synctex_fwd, ['F7']),
             ('cancel', self.on_cancel_action, []),
-            ('new-tab', self.on_new_tab, []),
+            ('new-tab', lambda *_: self.create_new_tab(), []),
         ]
 
         for a in actions: self.create_action(*a)
         self.texstack.set_visible_child_name("empty")
-        #buffer = LatexBuffer()
-        #self.sourceview.set_buffer(buffer)
-        #buffer.connect("changed", lambda _: self.title.set_saved(False))
 
         #docmanager = DocumentManager(buffer)
         #docmanager.connect("open-success", self.open_success_cb)
@@ -80,7 +76,7 @@ class TexwriterWindow(Gtk.ApplicationWindow):
 
         #self.pdfview.connect("synctex-bck", self.synctex_bck)
 
-    def on_new_tab(self, widget, _):
+    def create_new_tab(self):
 
         def on_src_modified(obj, gparamstring, pg):
             if obj.modified == True:
@@ -92,9 +88,11 @@ class TexwriterWindow(Gtk.ApplicationWindow):
         src = TexwriterSource()
         tab_page = self.tab_view.append(src)
         flag = GObject.BindingFlags.DEFAULT | GObject.BindingFlags.SYNC_CREATE
-        src.bind_property("filename", tab_page, "title", flag)
+        src.bind_property("title", tab_page, "title", flag)
         self.texstack.set_visible_child_name("view")
         src.connect("notify::modified", on_src_modified, tab_page)
+        self.tab_view.set_selected_page(tab_page)
+        return tab_page
 
 
     def on_compiled(self, sender, success):
@@ -127,8 +125,18 @@ class TexwriterWindow(Gtk.ApplicationWindow):
     def on_open_action(self, widget, _):
 
         dialog = TexFileChooser("open", self)
-        dialog.connect("finished", lambda _, f: self.docmanager.open_file(f))
+        dialog.connect("finished", self.on_open_response)
         dialog.run()
+
+    def on_open_response(self, sender, file):
+        pg = self.tab_view.get_selected_page() or self.create_new_tab()
+        src = pg.get_child()
+        if src.title == "New Document" and src.modified == False:
+            src.open_file(file)
+        else:
+            pg = self.create_new_tab()
+            src = pg.get_child()
+            src.open_file(file)
 
 
     def on_save_action(self, widget, _):

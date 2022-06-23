@@ -22,22 +22,6 @@ class DocumentManager(GObject.GObject):
         self.logprocessor = LogProcessor(buffer)
         self.logprocessor.connect('finished',self.on_log_finished)
 
-    def open_file(self,file):
-
-        def load_finish_cb(loader, result):
-            success = loader.load_finish(result)
-            path = loader.get_location().get_path()
-            if success:
-                self.file = file # when we call this fcn, file is the right thing
-                self.logprocessor.set_path(path)
-                self.emit("open-success", path)
-            else:
-                print("Could not load file: " + path)
-            return success
-
-        loader = GtkSource.FileLoader.new(self.buffer, file)
-        self.cancellable = Gio.Cancellable.new()
-        loader.load_async(io_priority=GLib.PRIORITY_DEFAULT, callback = load_finish_cb, cancellable = self.cancellable)
 
     def save_file(self):
 
