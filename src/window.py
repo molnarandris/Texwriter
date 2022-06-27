@@ -31,6 +31,8 @@ class TexwriterWindow(Gtk.ApplicationWindow):
     paned         = Gtk.Template.Child()
     pdfview       = Gtk.Template.Child()
     title         = Gtk.Template.Child()
+    subtitle      = Gtk.Template.Child()
+    is_modified   = Gtk.Template.Child()
     btn_stack     = Gtk.Template.Child()
     logview       = Gtk.Template.Child()
     toast_overlay = Gtk.Template.Child()
@@ -66,17 +68,18 @@ class TexwriterWindow(Gtk.ApplicationWindow):
         for a in actions: self.create_action(*a)
         self.texstack.set_visible_child_name("empty")
 
-        #docmanager = DocumentManager(buffer)
-        #docmanager.connect("open-success", self.open_success_cb)
-        #docmanager.connect("save-success", lambda _: self.title.set_saved(True))
-        #docmanager.connect("open-pdf", self.open_pdf)
-        #docmanager.connect("compiled", self.on_compiled)
+        self.tab_view.connect("notify::selected-page", lambda obj, _: self.selected_tab_changed(obj, obj.get_selected_page()))
+        self.title_binding = None
 
-        #self.docmanager = docmanager
+    def selected_tab_changed(self, tab_view, pg):
+        src = pg.get_child()
+        if self.title_binding:
+            self.title_binding.unbind()
+        flag = GObject.BindingFlags.DEFAULT | GObject.BindingFlags.SYNC_CREATE
+        src.bind_property("title", self.title, "label", flag)
+        src.bind_property("modified", self.is_modified, "visible", flag)
 
-        #self.pdfview.connect("synctex-bck", self.synctex_bck)
-
-    def set_pg_modified(self, b, pg):
+    def set_pg_icon(self, b, pg):
         ''' Sets the icon of a given tab page
         '''
         if b:
@@ -90,7 +93,7 @@ class TexwriterWindow(Gtk.ApplicationWindow):
         tab_page = self.tab_view.append(src)
         flag = GObject.BindingFlags.DEFAULT | GObject.BindingFlags.SYNC_CREATE
         src.bind_property("title", tab_page, "title", flag)
-        src.connect("notify::modified", lambda obj, _, pg : self.set_pg_modified(obj.modified, pg), tab_page)
+        src.connect("notify::modified", lambda obj, _ : self.set_pg_icon(obj.modified, tab_page))
         self.texstack.set_visible_child_name("view")
         self.tab_view.set_selected_page(tab_page)
         return tab_page
@@ -162,38 +165,6 @@ class TexwriterWindow(Gtk.ApplicationWindow):
         if shortcuts:
             self.get_application().set_accels_for_action(f"win.{name}", shortcuts)
 
-
-class TitleWidget(Gtk.Box):
-    __gtype_name__ = "TitleWidget"
-
-    def __init__(self):
-        super().__init__()
-        self.set_orientation(Gtk.Orientation.VERTICAL)
-        self.set_valign(Gtk.Align.CENTER)
-        self.title = Gtk.Label()
-        self.subtitle = Gtk.Label()
-        self.saved = True
-        self.set_title_string("New Document")
-        self.set_subtitle_string("path")
-
-        self.append(self.title)
-        self.append(self.subtitle)
-
-
-    def set_title_string(self,s):
-        self.title_string = s
-        self.set_saved(self.saved)
-
-    def set_subtitle_string(self,s):
-        self.subtitle_string = s
-        self.subtitle.set_markup("<small>" + s + "</small>")
-
-    def set_saved(self,b):
-        self.saved = b
-        if self.saved:
-            self.title.set_markup("<b>" + self.title_string + "</b>")
-        else:
-            self.title.set_markup("<i><b>" + self.title_string + "*" + "</b></i>")
 
 class AboutDialog(Gtk.AboutDialog):
 

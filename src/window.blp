@@ -7,7 +7,26 @@ template TexwriterWindow {
 
   [titlebar]
   HeaderBar {
-    title-widget: .TitleWidget title {};
+    title-widget: Box {
+      orientation: vertical;
+      CenterBox{
+        [start]
+        Label is_modified {
+          label: "•";
+          margin-top: 6;
+          margin-end: 3;
+          visible: false;
+        }
+        [center]
+        Label title {
+          label: "TexWriter";
+          margin-top: 6;
+        }
+      }
+      Label subtitle {
+        label: "";
+      }
+    };
 
     [start]
     Button btn_tab {
