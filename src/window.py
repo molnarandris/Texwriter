@@ -36,7 +36,7 @@ class TexwriterWindow(Gtk.ApplicationWindow):
     btn_stack     = Gtk.Template.Child()
     logview       = Gtk.Template.Child()
     toast_overlay = Gtk.Template.Child()
-    texstack      = Gtk.Template.Child()
+    main_stack    = Gtk.Template.Child()
     tab_view      = Gtk.Template.Child()
 
     def __init__(self, **kwargs):
@@ -66,18 +66,25 @@ class TexwriterWindow(Gtk.ApplicationWindow):
         ]
 
         for a in actions: self.create_action(*a)
-        self.texstack.set_visible_child_name("empty")
+        self.main_stack.set_visible_child_name("empty")
 
         self.tab_view.connect("notify::selected-page", lambda obj, _: self.selected_tab_changed(obj, obj.get_selected_page()))
         self.title_binding = None
+        self.modified_binding = None
 
     def selected_tab_changed(self, tab_view, pg):
-        src = pg.get_child()
         if self.title_binding:
             self.title_binding.unbind()
+        if self.modified_binding:
+            self.modified_binding.unbind()
+        if pg is None:
+            self.title = "TexWriter"
+            self.is_modified.set_visible(False)
+            return
+        src = pg.get_child()
         flag = GObject.BindingFlags.DEFAULT | GObject.BindingFlags.SYNC_CREATE
-        src.bind_property("title", self.title, "label", flag)
-        src.bind_property("modified", self.is_modified, "visible", flag)
+        self.title_binding = src.bind_property("title", self.title, "label", flag)
+        self.modified_binding = src.bind_property("modified", self.is_modified, "visible", flag)
 
     def set_pg_icon(self, b, pg):
         ''' Sets the icon of a given tab page
@@ -94,7 +101,7 @@ class TexwriterWindow(Gtk.ApplicationWindow):
         flag = GObject.BindingFlags.DEFAULT | GObject.BindingFlags.SYNC_CREATE
         src.bind_property("title", tab_page, "title", flag)
         src.connect("notify::modified", lambda obj, _ : self.set_pg_icon(obj.modified, tab_page))
-        self.texstack.set_visible_child_name("view")
+        self.main_stack.set_visible_child_name("non-empty")
         self.tab_view.set_selected_page(tab_page)
         return tab_page
 
@@ -140,7 +147,7 @@ class TexwriterWindow(Gtk.ApplicationWindow):
             return
         self.tab_view.close_page(pg)
         if self.tab_view.get_n_pages() == 0:
-            self.texstack.set_visible_child_name("empty")
+            self.main_stack.set_visible_child_name("empty")
 
     def on_compile_action(self, widget, _):
         self.docmanager.to_compile = True

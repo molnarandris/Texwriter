@@ -61,16 +61,17 @@ template TexwriterWindow {
 
   [content]
   Adw.ToastOverlay toast_overlay {
-    Paned paned {
-      position: 300;
-      resize-start-child: true;
-      resize-end-child: true;
 
-      [start]
-      Gtk.Stack texstack{
-        StackPage {
-          name: "view";
-          child: Box {
+    Gtk.Stack main_stack{
+      StackPage {
+        name: "non-empty";
+        child: Paned paned {
+          position: 300;
+          resize-start-child: true;
+          resize-end-child: true;
+
+          [start]
+          Box {
             orientation: vertical;
             Adw.TabBar tab_bar {
               view: tab_view;
@@ -79,33 +80,33 @@ template TexwriterWindow {
               hexpand: true;
               vexpand: true;
             }
-          };
-        }
+          }  // Box
 
-        StackPage {
-          name: "empty";
-          child: Adw.StatusPage {
-            title: "No document to display";
-            description: "Start or Open a document";
-            icon-name: "document-open";
-          };
-        }
-      }
+          [end]
+          Gtk.Stack pdfstack {
+          	StackPage {
+          	  name: "pdfview";
+          	  child: .PdfViewer pdfview {};
+          	}
+          	StackPage {
+          	  name: "logview";
+              child: .LogView logview {};
+      	    }
+          }  // pdf stack
+        }; // Paned
+      } // Stack Page
 
-      [end]
-      Gtk.Stack pdfstack {
-      	StackPage {
-      	  name: "pdfview";
-      	  child: .PdfViewer pdfview {};
-      	}
-      	StackPage {
-      	  name: "logview";
-          child: .LogView logview {};
-      	}
-      }
-    }
-  }
-}
+      StackPage {
+        name: "empty";
+        child: Adw.StatusPage {
+          title: "No document to display";
+          description: "Start or Open a document";
+          icon-name: "document-open";
+        };
+      } // empty stack page
+    }  // main stack
+  } // toast overlay
+}  // window
 
 menu primary_menu {
   section {
