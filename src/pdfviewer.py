@@ -59,12 +59,16 @@ class PdfViewer(Gtk.Widget):
             self.box.remove(child)
             child = self.box.get_first_child()
 
+        print("Opening pdf: ",  path)
+
+        if path is None:
+            self.stack.set_visible_child_name("empty")
+            return
         self.path = path
         uri = 'file://' + path
         try:
             doc = Poppler.Document.new_from_file(uri)
         except:
-           self.emit("loaded", False)
            self.set_visible_child_name("empty")
            return
         for i in range(doc.get_n_pages()):
@@ -73,7 +77,7 @@ class PdfViewer(Gtk.Widget):
             overlay.set_child(pg)
             self.box.append(overlay)
         self.doc = doc
-        self.set_visible_child_name("pdf")
+        self.stack.set_visible_child_name("pdf")
         self.emit("loaded", True)
 
 

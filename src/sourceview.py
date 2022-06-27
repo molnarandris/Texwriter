@@ -15,6 +15,12 @@ class TexwriterSource(Gtk.Widget):
     title = GObject.Property(type=str, default='New Document')
     modified = GObject.Property(type=bool, default=False)
 
+
+    __gsignals__ = {
+        'opened': (GObject.SIGNAL_RUN_LAST, None, (str,)),
+    }
+
+
     def __init__(self):
         super().__init__()
         layout = Gtk.BinLayout()
@@ -32,6 +38,7 @@ class TexwriterSource(Gtk.Widget):
             self.file.set_location(loader.get_location())
             self.set_property("modified", False)
             self.set_property("title", self.file.get_title())
+            self.emit("opened", self.file.get_pdf_path())
         else:
             print("Could not load file: " + path)
         return success
@@ -130,4 +137,10 @@ class TexwriterSource(Gtk.Widget):
         _, it = buf.get_iter_at_line_offset(line-1,0)
         buf.place_cursor(it)
         self.sourceview.scroll_to_iter(it,0,True, 0, 0.382)
+
+    def get_pdf_path(self):
+        if self.file:
+            return self.file.get_pdf_path()
+        else:
+            return None
 

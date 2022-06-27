@@ -20,3 +20,14 @@ class TexFile(GtkSource.File):
         path = location.get_path()
         path = os.path.basename(path)
         return os.path.splitext(path)[0]
+
+    def get_pdf_path(self):
+        location = self.get_location()
+        if location is None:
+            return None
+        path = location.get_path()
+        if path:
+            return os.path.splitext(path)[0] + ".pdf"
+        else:
+            return None
+        

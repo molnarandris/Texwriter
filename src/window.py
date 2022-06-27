@@ -85,6 +85,7 @@ class TexwriterWindow(Gtk.ApplicationWindow):
         flag = GObject.BindingFlags.DEFAULT | GObject.BindingFlags.SYNC_CREATE
         self.title_binding = src.bind_property("title", self.title, "label", flag)
         self.modified_binding = src.bind_property("modified", self.is_modified, "visible", flag)
+        self.pdfview.open_file(src.get_pdf_path())
 
     def set_pg_icon(self, b, pg):
         ''' Sets the icon of a given tab page
@@ -101,6 +102,7 @@ class TexwriterWindow(Gtk.ApplicationWindow):
         flag = GObject.BindingFlags.DEFAULT | GObject.BindingFlags.SYNC_CREATE
         src.bind_property("title", tab_page, "title", flag)
         src.connect("notify::modified", lambda obj, _ : self.set_pg_icon(obj.modified, tab_page))
+        src.connect("opened", lambda _, path: self.pdfview.open_file(path))
         self.main_stack.set_visible_child_name("non-empty")
         self.tab_view.set_selected_page(tab_page)
         return tab_page
