@@ -23,22 +23,6 @@ class DocumentManager(GObject.GObject):
         self.logprocessor.connect('finished',self.on_log_finished)
 
 
-    def save_file(self):
-
-        def save_finish_cb(saver, result):
-            success = saver.save_finish(result)
-            path = saver.get_location().get_path()
-            if success:
-                self.emit("save-success")
-                if self.to_compile:
-                    self.compile()
-            else:
-                print("Could not save file: " + path)
-            return success
-
-        saver = GtkSource.FileSaver.new(self.buffer, self.file)
-        self.cancellable = Gio.Cancellable.new()
-        saver.save_async(io_priority = GLib.PRIORITY_DEFAULT, callback = save_finish_cb, cancellable = self.cancellable)
 
     def compile(self):
         def on_compile_finished(sender):
