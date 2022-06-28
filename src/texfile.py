@@ -31,3 +31,16 @@ class TexFile(GtkSource.File):
         else:
             return None
         
+    def get_tex_path(self):
+        location = self.get_location()
+        if location is None:
+            return None
+        return location.get_path()
+
+    def get_dir(self):
+        location = self.get_location()
+        if location is None:
+            return None
+        path = location.get_path()
+        return os.path.dirname(path)
+        

@@ -86,6 +86,7 @@ class TexwriterWindow(Gtk.ApplicationWindow):
         self.title_binding = src.bind_property("title", self.title, "label", flag)
         self.modified_binding = src.bind_property("modified", self.is_modified, "visible", flag)
         self.pdfview.open_file(src.get_pdf_path())
+        src.connect("compiled", self.on_compiled)
 
     def set_pg_icon(self, b, pg):
         ''' Sets the icon of a given tab page
@@ -152,8 +153,11 @@ class TexwriterWindow(Gtk.ApplicationWindow):
             self.main_stack.set_visible_child_name("empty")
 
     def on_compile_action(self, widget, _):
-        self.docmanager.to_compile = True
-        self.activate_action("win.save")
+        pg = self.tab_view.get_selected_page()
+        if pg is None:
+            return
+        src = pg.get_child()
+        src.compile()
         self.btn_stack.set_visible_child_name("cancel")
 
     def on_cancel_action(self, widget, _):

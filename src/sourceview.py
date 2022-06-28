@@ -1,6 +1,6 @@
 import gi
 gi.require_version('GtkSource', '5')
-from gi.repository import Gtk, GtkSource, GObject, GLib
+from gi.repository import Gtk, GtkSource, GObject, GLib, Gio
 from .latexbuffer import LatexBuffer
 from .texfile import TexFile
 
@@ -18,6 +18,7 @@ class TexwriterSource(Gtk.Widget):
 
     __gsignals__ = {
         'opened': (GObject.SIGNAL_RUN_LAST, None, (str,)),
+        'compiled': (GObject.SIGNAL_RUN_LAST, None, (bool,)),
     }
 
 
@@ -29,6 +30,7 @@ class TexwriterSource(Gtk.Widget):
         self.sourceview.set_buffer(buffer)
         buffer.connect("changed", lambda _ : self.set_property("modified", True))
         self.file = None
+        self.to_compile = False
 
     def load_finish_cb(self, loader, result):
         success = loader.load_finish(result)
@@ -143,4 +145,28 @@ class TexwriterSource(Gtk.Widget):
             return self.file.get_pdf_path()
         else:
             return None
+
+
+    def on_compile_finished(self, proc, result, data):
+        self.to_compile = False
+        if not proc.get_successful():
+            self.logprocessor.run()
+        self.emit("compiled", proc.get_successful())
+
+
+    def compile(self):
+        if self.file is None:
+            return
+        if self.modified:
+            self.to_compile = True
+            self.save()
+            return  # we have to wait for the saving to finish
+        self.to_compile = False
+        self.sourceview.get_buffer().clear_tags()
+        path = self.file.get_tex_path()
+        directory = self.file.get_dir()
+        cmd = ['flatpak-spawn', '--host', 'latexmk', '-synctex=1', '-interaction=nonstopmode',
+               '-pdf', '-halt-on-error', path]
+        proc = Gio.Subprocess.new(cmd, Gio.SubprocessFlags.STDOUT_PIPE|Gio.SubprocessFlags.STDERR_PIPE)
+        proc.communicate_utf8_async(None, None, self.on_compile_finished, None)
 
