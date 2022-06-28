@@ -1,11 +1,18 @@
-Adapt to Adw.Tabview:
-  - Create a sourceview widget
-  - Move it to a new file
-  - Clean up the window
-  - Make it work!
+Tabs:
+  - We should have one project per window.
+  - At file opening, decide if we need to open in new window or new tab
+  - Use magic commands for the decision, extra shortcuts as well
 
-Clean up pdfview:
-  - Empty page to Adw.StatusPage
+App:
+  - Add ability to open a new window
+
+Window:
+  - Remove the tab mess. Keep track of the root file.
+
+Reorganization:
+  - Compilation related things should go back to document manager.
+  - Saving is left in sourceview
+  - opening in window?
 
 SourceView:
   - Notify user if file changed on disk
