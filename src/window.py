@@ -58,6 +58,7 @@ class TexwriterWindow(Gtk.ApplicationWindow):
         self.tab_view.connect("notify::selected-page", lambda obj, _: self.selected_tab_changed(obj, obj.get_selected_page()))
 
     def selected_tab_changed(self, tab_view, pg):
+        # we need to update the compile button according to busyness of compiler
         if pg is None:
             self.title = "TexWriter"
             return
@@ -79,6 +80,7 @@ class TexwriterWindow(Gtk.ApplicationWindow):
         self.tab_view.set_selected_page(tab_page)
         flags = GObject.BindingFlags.DEFAULT | GObject.BindingFlags.SYNC_CREATE
         pg.sourceview.bind_property("title", tab_page, "title", flags)
+        pg.sourceview.connect("notify::modified", lambda *_: self.set_pg_icon(pg.sourceview.modified, tab_page))
         return tab_page
 
 
