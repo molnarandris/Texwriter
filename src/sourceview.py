@@ -114,27 +114,5 @@ class TexwriterSource(Gtk.Widget):
         else:
             return None
 
-
-    def on_compile_finished(self, proc, result, data):
-        self.to_compile = False
-        if not proc.get_successful():
-            self.logprocessor.run()
-        self.emit("compiled", proc.get_successful())
-
-
-    def compile(self):
-        if self.file is None:
-            return
-        if self.modified:
-            self.to_compile = True
-            self.save()
-            return  # we have to wait for the saving to finish
-        self.to_compile = False
+    def clear_tags(self):
         self.sourceview.get_buffer().clear_tags()
-        path = self.file.get_tex_path()
-        directory = self.file.get_dir()
-        cmd = ['flatpak-spawn', '--host', 'latexmk', '-synctex=1', '-interaction=nonstopmode',
-               '-pdf', '-halt-on-error', path]
-        proc = Gio.Subprocess.new(cmd, Gio.SubprocessFlags.STDOUT_PIPE|Gio.SubprocessFlags.STDERR_PIPE)
-        proc.communicate_utf8_async(None, None, self.on_compile_finished, None)
-

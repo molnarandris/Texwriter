@@ -58,6 +58,9 @@ class TexwriterWindow(Gtk.ApplicationWindow):
         self.tab_view.connect("notify::selected-page", lambda obj, _: self.selected_tab_changed(obj, obj.get_selected_page()))
         self.tab_view.connect("notify::n-pages", lambda obj,_ : self.on_n_tab_change(obj,obj.get_n_pages()))
 
+        self.btn_stack_handler_id = None
+        self.old_tab_page = None
+
     def on_n_tab_change(self,tab_view, n):
         if n == 0:
             self.main_stack.set_visible_child_name("empty")
@@ -67,9 +70,13 @@ class TexwriterWindow(Gtk.ApplicationWindow):
     def selected_tab_changed(self, tab_view, pg):
         # we need to update the compile button according to busyness of compiler
         if pg is None:
-            self.title = "TexWriter"
             return
         tab_page = pg.get_child()
+        if self.old_tab_page and self.btn_stack_handler_id:
+            self.old_tab_page.disconnect(self.btn_stack_handler_id)
+
+        self.btn_stack_handler_id = tab_page.connect("notify::busy", lambda obj,_: self.btn_stack.set_visible_child_name("cancel") if obj.get_property("busy") else self.btn_stack.set_visible_child_name("compile"))
+        self.old_tab_page = tab_page
 
     def set_pg_icon(self, b, pg):
         ''' Sets the icon of a given tab page
@@ -163,8 +170,8 @@ class TexwriterWindow(Gtk.ApplicationWindow):
         pg = self.tab_view.get_selected_page()
         if pg is None:
             return
-        src = pg.get_child()
-        src.compile()
+        tab_page = pg.get_child()
+        tab_page.compile()
         self.btn_stack.set_visible_child_name("cancel")
 
     def on_cancel_action(self, widget, _):
