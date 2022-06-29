@@ -12,8 +12,8 @@ class TabPage(Gtk.Widget):
     logview       = Gtk.Template.Child()
     sourceview    = Gtk.Template.Child()
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
         layout = Gtk.BinLayout()
         self.set_layout_manager(layout)
@@ -24,6 +24,11 @@ class TabPage(Gtk.Widget):
 
         # do_dispose does not run
         self.connect("destroy", self.my_dispose_cb)
+        self.connect("realize", self.realize_cb)
+
+    def realize_cb(self, _):
+        # hack: set first size
+        self.paned.set_position(self.get_root().get_allocated_width() / 2)
 
     # do_dispose does not run
     def my_dispose_cb(self, _):
