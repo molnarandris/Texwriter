@@ -77,6 +77,8 @@ class TexwriterWindow(Gtk.ApplicationWindow):
         tab_page = self.tab_view.append(pg)
         self.main_stack.set_visible_child_name("non-empty")
         self.tab_view.set_selected_page(tab_page)
+        flags = GObject.BindingFlags.DEFAULT | GObject.BindingFlags.SYNC_CREATE
+        pg.sourceview.bind_property("title", tab_page, "title", flags)
         return tab_page
 
 
