@@ -143,7 +143,7 @@ class TexwriterWindow(Gtk.ApplicationWindow):
         pg = self.tab_view.get_selected_page()
         if pg is None:
             return
-        src = pg.get_child()
+        src = pg.get_child().sourceview
         src.save()
 
     def on_close_tab(self, widget, _):
