@@ -18,23 +18,15 @@
 import os, re, gi
 gi.require_version('GtkSource', '5')
 from gi.repository import Gtk, GObject, GtkSource, Gio, GLib, Gdk, Adw
-from .pdfviewer import PdfViewer
 from .utilities import ProcessRunner
 from .documentmanager import  DocumentManager
-from .logview import LogView
-from .sourceview import TexwriterSource
+from .tabpage import TabPage
 
 @Gtk.Template(resource_path='/com/github/molnarandris/texwriter/window.ui')
 class TexwriterWindow(Gtk.ApplicationWindow):
     __gtype_name__ = 'TexwriterWindow'
 
-    paned         = Gtk.Template.Child()
-    pdfview       = Gtk.Template.Child()
-    title         = Gtk.Template.Child()
-    subtitle      = Gtk.Template.Child()
-    is_modified   = Gtk.Template.Child()
     btn_stack     = Gtk.Template.Child()
-    logview       = Gtk.Template.Child()
     toast_overlay = Gtk.Template.Child()
     main_stack    = Gtk.Template.Child()
     tab_view      = Gtk.Template.Child()
@@ -49,11 +41,6 @@ class TexwriterWindow(Gtk.ApplicationWindow):
         settings.bind("width", self, "default-width", Gio.SettingsBindFlags.DEFAULT)
         settings.bind("height", self, "default-height", Gio.SettingsBindFlags.DEFAULT)
         settings.bind("maximized", self, "maximized", Gio.SettingsBindFlags.DEFAULT)
-        settings.bind("paned-position", self.paned, "position", Gio.SettingsBindFlags.DEFAULT)
-
-        # Making paned to change size when window is resized
-        self.paned.set_resize_start_child(True)
-        self.paned.set_resize_end_child(True)
 
         actions = [
             ('open', self.on_open_action, ['<primary>o']),
@@ -69,24 +56,12 @@ class TexwriterWindow(Gtk.ApplicationWindow):
         self.main_stack.set_visible_child_name("empty")
 
         self.tab_view.connect("notify::selected-page", lambda obj, _: self.selected_tab_changed(obj, obj.get_selected_page()))
-        self.title_binding = None
-        self.modified_binding = None
 
     def selected_tab_changed(self, tab_view, pg):
-        if self.title_binding:
-            self.title_binding.unbind()
-        if self.modified_binding:
-            self.modified_binding.unbind()
         if pg is None:
             self.title = "TexWriter"
-            self.is_modified.set_visible(False)
             return
-        src = pg.get_child()
-        flag = GObject.BindingFlags.DEFAULT | GObject.BindingFlags.SYNC_CREATE
-        self.title_binding = src.bind_property("title", self.title, "label", flag)
-        self.modified_binding = src.bind_property("modified", self.is_modified, "visible", flag)
-        self.pdfview.open_file(src.get_pdf_path())
-        src.connect("compiled", self.on_compiled)
+        tab_page = pg.get_child()
 
     def set_pg_icon(self, b, pg):
         ''' Sets the icon of a given tab page
@@ -98,12 +73,8 @@ class TexwriterWindow(Gtk.ApplicationWindow):
             pg.set_icon(None)
 
     def create_new_tab(self):
-        src = TexwriterSource()
-        tab_page = self.tab_view.append(src)
-        flag = GObject.BindingFlags.DEFAULT | GObject.BindingFlags.SYNC_CREATE
-        src.bind_property("title", tab_page, "title", flag)
-        src.connect("notify::modified", lambda obj, _ : self.set_pg_icon(obj.modified, tab_page))
-        src.connect("opened", lambda _, path: self.pdfview.open_file(path))
+        pg = TabPage()
+        tab_page = self.tab_view.append(pg)
         self.main_stack.set_visible_child_name("non-empty")
         self.tab_view.set_selected_page(tab_page)
         return tab_page
@@ -128,12 +99,40 @@ class TexwriterWindow(Gtk.ApplicationWindow):
         self.activate_action("win.synctex-fwd", None)
 
     def on_open_action(self, widget, _):
-        pg = self.tab_view.get_selected_page() or self.create_new_tab()
-        src = pg.get_child()
-        if src.modified or src.title != "New Document":
-            pg = self.create_new_tab()
-            src = pg.get_child()
-        src.open()
+        dialog = Gtk.FileChooserNative.new(
+                    "Open File",
+                    self.get_root(),
+                    Gtk.FileChooserAction.OPEN,
+                    None,
+                    None
+                 )
+
+        filter_tex = Gtk.FileFilter()
+        filter_tex.set_name("Latex")
+        filter_tex.add_mime_type("text/x-tex")
+        dialog.add_filter(filter_tex)
+
+        filter_any = Gtk.FileFilter()
+        filter_any.set_name("Any files")
+        filter_any.add_pattern("*")
+        dialog.add_filter(filter_any)
+
+        dialog.connect("response", self.on_open_response)
+        dialog.set_modal(True)
+        dialog.show()
+        self.open_dialog = dialog
+
+    def on_open_response(self, dialog, response):
+        if response == Gtk.ResponseType.ACCEPT:
+            file = GtkSource.File.new()
+            file.set_location(dialog.get_file())
+            pg = self.tab_view.get_selected_page() or self.create_new_tab()
+            src = pg.get_child().sourceview
+            if src.modified or src.title != "New Document":
+                pg = self.create_new_tab()
+                src = pg.get_child().sourceview
+            src.load_file(file)
+        self.open_dialog = None
 
 
     def on_save_action(self, widget, _):

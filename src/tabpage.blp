@@ -1,0 +1,24 @@
+using Gtk 4.0;
+
+template TabPage {
+  Paned paned {
+    position: 300;
+    resize-start-child: true;
+    resize-end-child: true;
+
+    [start]
+    .TexwriterSource sourceview {}
+
+    [end]
+    Gtk.Stack pdfstack {
+    	StackPage {
+    	  name: "pdfview";
+    	  child: .PdfViewer pdfview {};
+    	}
+    	StackPage {
+    	  name: "logview";
+        child: .LogView logview {};
+	    }
+    }  // pdf stack
+  } // Paned
+}

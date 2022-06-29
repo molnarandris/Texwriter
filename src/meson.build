@@ -2,12 +2,13 @@ pkgdatadir = join_paths(get_option('prefix'), get_option('datadir'), meson.proje
 moduledir = join_paths(pkgdatadir, 'texwriter')
 gnome = import('gnome')
 
-
+# Don't forget to add the .ui to the gresource.xml!
 blueprints = custom_target('blueprints',
   input: files(
     'window.blp',
     'pdfviewer.blp',
     'sourceview.blp',
+    'tabpage.blp',
   ),
   output: '.',
   command: [find_program('blueprint-compiler'), 'batch-compile', '@OUTDIR@', '@CURRENT_SOURCE_DIR@', '@INPUT@'],
@@ -51,6 +52,7 @@ texwriter_sources = [
   'logview.py',
   'sourceview.py',
   'texfile.py',
+  'tabpage.py'
 ]
 
 install_data(texwriter_sources, install_dir: moduledir)

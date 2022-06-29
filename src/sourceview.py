@@ -51,38 +51,6 @@ class TexwriterSource(Gtk.Widget):
         loader.load_async(io_priority = GLib.PRIORITY_DEFAULT,
                           callback    = self.load_finish_cb)
 
-    def open(self):
-        dialog = Gtk.FileChooserNative.new(
-                    "Open File",
-                    self.get_root(),
-                    Gtk.FileChooserAction.OPEN,
-                    None,
-                    None
-                 )
-
-        filter_tex = Gtk.FileFilter()
-        filter_tex.set_name("Latex")
-        filter_tex.add_mime_type("text/x-tex")
-        dialog.add_filter(filter_tex)
-
-        filter_any = Gtk.FileFilter()
-        filter_any.set_name("Any files")
-        filter_any.add_pattern("*")
-        dialog.add_filter(filter_any)
-
-        dialog.connect("response", self.on_open_response)
-        dialog.set_modal(True)
-        dialog.show()
-        self.open_dialog = dialog
-
-    def on_open_response(self, dialog, response):
-        if response != Gtk.ResponseType.ACCEPT:
-            self.open_dialog = None
-            return
-        file = GtkSource.File.new()
-        file.set_location(dialog.get_file())
-        self.open_dialog = None
-        self.load_file(file)
 
     def save(self):
         if self.file is None:

@@ -7,25 +7,10 @@ template TexwriterWindow {
 
   [titlebar]
   HeaderBar {
-    title-widget: Box {
-      orientation: vertical;
-      CenterBox{
-        [start]
-        Label is_modified {
-          label: "•";
-          margin-top: 6;
-          margin-end: 3;
-          visible: false;
-        }
-        [center]
-        Label title {
-          label: "TexWriter";
-          margin-top: 6;
-        }
-      }
-      Label subtitle {
-        label: "";
-      }
+    title-widget: Adw.TabBar tab_bar {
+      view: tab_view;
+      hexpand: true;
+      autohide: false;
     };
 
     [start]
@@ -62,38 +47,11 @@ template TexwriterWindow {
   [content]
   Adw.ToastOverlay toast_overlay {
 
+
     Gtk.Stack main_stack{
       StackPage {
         name: "non-empty";
-        child: Paned paned {
-          position: 300;
-          resize-start-child: true;
-          resize-end-child: true;
-
-          [start]
-          Box {
-            orientation: vertical;
-            Adw.TabBar tab_bar {
-              view: tab_view;
-            }
-            Adw.TabView tab_view {
-              hexpand: true;
-              vexpand: true;
-            }
-          }  // Box
-
-          [end]
-          Gtk.Stack pdfstack {
-          	StackPage {
-          	  name: "pdfview";
-          	  child: .PdfViewer pdfview {};
-          	}
-          	StackPage {
-          	  name: "logview";
-              child: .LogView logview {};
-      	    }
-          }  // pdf stack
-        }; // Paned
+        child: Adw.TabView tab_view {};
       } // Stack Page
 
       StackPage {
