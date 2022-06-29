@@ -56,6 +56,13 @@ class TexwriterWindow(Gtk.ApplicationWindow):
         self.main_stack.set_visible_child_name("empty")
 
         self.tab_view.connect("notify::selected-page", lambda obj, _: self.selected_tab_changed(obj, obj.get_selected_page()))
+        self.tab_view.connect("notify::n-pages", lambda obj,_ : self.on_n_tab_change(obj,obj.get_n_pages()))
+
+    def on_n_tab_change(self,tab_view, n):
+        if n == 0:
+            self.main_stack.set_visible_child_name("empty")
+        else:
+            self.main_stack.set_visible_child_name("non-empty")
 
     def selected_tab_changed(self, tab_view, pg):
         # we need to update the compile button according to busyness of compiler
@@ -76,7 +83,6 @@ class TexwriterWindow(Gtk.ApplicationWindow):
     def create_new_tab(self):
         pg = TabPage()
         tab_page = self.tab_view.append(pg)
-        self.main_stack.set_visible_child_name("non-empty")
         self.tab_view.set_selected_page(tab_page)
         flags = GObject.BindingFlags.DEFAULT | GObject.BindingFlags.SYNC_CREATE
         pg.sourceview.bind_property("title", tab_page, "title", flags)
@@ -152,8 +158,6 @@ class TexwriterWindow(Gtk.ApplicationWindow):
             self.close()
             return
         self.tab_view.close_page(pg)
-        if self.tab_view.get_n_pages() == 0:
-            self.main_stack.set_visible_child_name("empty")
 
     def on_compile_action(self, widget, _):
         pg = self.tab_view.get_selected_page()
