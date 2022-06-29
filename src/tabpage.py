@@ -23,7 +23,7 @@ class TabPage(Gtk.Widget):
         self.paned.set_resize_end_child(True)
 
         # do_dispose does not run
-        self.connect("destroy", self.my_dispose_cb)
+        self.connect("destroy", self.dispose_cb)
         self.connect("realize", self.realize_cb)
 
     def realize_cb(self, _):
@@ -31,5 +31,5 @@ class TabPage(Gtk.Widget):
         self.paned.set_position(self.get_root().get_allocated_width() / 2)
 
     # do_dispose does not run
-    def my_dispose_cb(self, _):
+    def dispose_cb(self, _):
         self.paned.unparent()
