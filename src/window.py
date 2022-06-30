@@ -61,13 +61,26 @@ class TexwriterWindow(Gtk.ApplicationWindow):
         self.btn_stack_handler_id = None
         self.old_tab_page = None
 
+        self.tab_view.connect("indicator-activated", self.on_indicator_activated)
+
+
+    def on_indicator_activated(self, view, pg):
+        print("Hi")
+
     def on_n_tab_change(self,tab_view, n):
+        ''' Called when the number of tabs in the window change.
+            If there is no more tabs present, sets empty view, otherwise
+            sets the normal view.
+        '''
         if n == 0:
             self.main_stack.set_visible_child_name("empty")
         else:
             self.main_stack.set_visible_child_name("non-empty")
 
     def selected_tab_changed(self, tab_view, pg):
+        ''' Called when the selected tab is changed. We need to set the compile
+            button to represent the state of the given tab page.
+        '''
         # we need to update the compile button according to busyness of compiler
         if pg is None:
             return
@@ -90,6 +103,8 @@ class TexwriterWindow(Gtk.ApplicationWindow):
     def create_new_tab(self):
         pg = TabPage()
         tab_page = self.tab_view.append(pg)
+        tab_page.set_indicator_icon(Gio.Icon.new_for_string("media-playback-start-symbolic"))
+        tab_page.set_indicator_activatable(True)
         self.tab_view.set_selected_page(tab_page)
         flags = GObject.BindingFlags.DEFAULT | GObject.BindingFlags.SYNC_CREATE
         pg.sourceview.bind_property("title", tab_page, "title", flags)
