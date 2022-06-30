@@ -53,7 +53,7 @@ class PdfViewer(Gtk.Widget):
         self.x = x
         self.y = y
 
-    def open_file(self, path):
+    def load(self, path):
         child = self.box.get_first_child()
         while child:
             self.box.remove(child)
@@ -70,6 +70,7 @@ class PdfViewer(Gtk.Widget):
             doc = Poppler.Document.new_from_file(uri)
         except:
            self.set_visible_child_name("empty")
+           self.emit("loaded", False)
            return
         for i in range(doc.get_n_pages()):
             pg = PdfPage(doc.get_page(i))

@@ -17,8 +17,8 @@ class TexwriterSource(Gtk.Widget):
 
 
     __gsignals__ = {
-        'opened': (GObject.SIGNAL_RUN_LAST, None, (str,)),
-        'compiled': (GObject.SIGNAL_RUN_LAST, None, (bool,)),
+        'opened': (GObject.SIGNAL_RUN_LAST, None, (bool,)),
+        'saved': (GObject.SIGNAL_RUN_LAST, None, (bool,)),
     }
 
 
@@ -98,8 +98,10 @@ class TexwriterSource(Gtk.Widget):
         path = saver.get_location().get_path()
         if success:
             self.set_property("modified", False)
+            self.emit("saved", True)
         else:
             print("Could not save file: " + path)
+            self.emit("saved", False)
         return success
 
     def synctex_bck(self,sender, line):
