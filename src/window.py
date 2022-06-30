@@ -65,7 +65,7 @@ class TexwriterWindow(Gtk.ApplicationWindow):
 
 
     def on_indicator_activated(self, view, pg):
-        print("Hi")
+        pg.get_child().compile()
 
     def on_n_tab_change(self,tab_view, n):
         ''' Called when the number of tabs in the window change.
@@ -100,6 +100,13 @@ class TexwriterWindow(Gtk.ApplicationWindow):
         else:
             pg.set_icon(None)
 
+    def set_pg_indicator_icon(self, busy, pg):
+        if busy:
+            icon = Gio.Icon.new_for_string("media-playback-stop-symbolic")
+        else:
+            icon = Gio.Icon.new_for_string("media-playback-start-symbolic")
+        tab_page.set_indicator_icon(icon)
+
     def create_new_tab(self):
         pg = TabPage()
         tab_page = self.tab_view.append(pg)
@@ -109,6 +116,7 @@ class TexwriterWindow(Gtk.ApplicationWindow):
         flags = GObject.BindingFlags.DEFAULT | GObject.BindingFlags.SYNC_CREATE
         pg.sourceview.bind_property("title", tab_page, "title", flags)
         pg.sourceview.connect("notify::modified", lambda *_: self.set_pg_icon(pg.sourceview.modified, tab_page))
+        pg.sourceview.connect("notify::busy", lambda *_: self.set_pg_indicator_icon(pg.sourceview.busy, tab_page))
         return tab_page
 
 
