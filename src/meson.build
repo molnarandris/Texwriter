@@ -52,7 +52,8 @@ texwriter_sources = [
   'logview.py',
   'sourceview.py',
   'texfile.py',
-  'tabpage.py'
+  'tabpage.py',
+  'logprocessor.py',
 ]
 
 install_data(texwriter_sources, install_dir: moduledir)

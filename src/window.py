@@ -105,7 +105,7 @@ class TexwriterWindow(Gtk.ApplicationWindow):
             icon = Gio.Icon.new_for_string("media-playback-stop-symbolic")
         else:
             icon = Gio.Icon.new_for_string("media-playback-start-symbolic")
-        tab_page.set_indicator_icon(icon)
+        pg.set_indicator_icon(icon)
 
     def create_new_tab(self):
         pg = TabPage()
@@ -116,7 +116,7 @@ class TexwriterWindow(Gtk.ApplicationWindow):
         flags = GObject.BindingFlags.DEFAULT | GObject.BindingFlags.SYNC_CREATE
         pg.sourceview.bind_property("title", tab_page, "title", flags)
         pg.sourceview.connect("notify::modified", lambda *_: self.set_pg_icon(pg.sourceview.modified, tab_page))
-        pg.sourceview.connect("notify::busy", lambda *_: self.set_pg_indicator_icon(pg.sourceview.busy, tab_page))
+        pg.connect("notify::busy", lambda *_: self.set_pg_indicator_icon(pg.busy, tab_page))
         return tab_page
 
 

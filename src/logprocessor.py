@@ -1,12 +1,10 @@
 import re
-from gi.repository import  Gtk, GObject, Gio
-from .logprocessor import LogProcessor
+from gi.repository import GObject, Gio
 
-class LogView(Gtk.Widget):
-    __gtype_name__ = "LogView"
+class LogProcessor(GObject.GObject):
 
     __gsignals__ = {
-        'loaded': (GObject.SIGNAL_RUN_LAST, None, ()),
+        'finished': (GObject.SIGNAL_RUN_LAST, None, ()),
     }
 
     # The regexps to look for in the log file
@@ -14,15 +12,8 @@ class LogView(Gtk.Widget):
     warning_re = re.compile("^LaTeX Warning: (Reference|Citation) `(.*)'.* ([0-9]*)\.\n",re.MULTILINE)
     error_re   = re.compile("^! (.*)\nl\.([0-9]*)(.*?$)",re.MULTILINE|re.DOTALL)
 
-
     def __init__(self):
         super().__init__()
-
-        layout = Gtk.BinLayout()
-        self.set_layout_manager(layout)
-
-        label =  Gtk.Label.new("Log")
-        label.set_parent(self)
         self.file = None
 
     def set_log_path(self, path):
@@ -47,7 +38,8 @@ class LogView(Gtk.Widget):
         for m in re.finditer(self.error_re, log):
             line   = int(m.group(2))-1
             detail = m.group(3)[4:]
-            self.error_list.append((line,detail))
+            description = m.group(1)
+            self.error_list.append((description,line,detail))
 
         for m in re.finditer(self.warning_re, log):
             line   = int(m.group(3))-1
@@ -64,13 +56,5 @@ class LogView(Gtk.Widget):
             detail = ""
             self.badbox_list.append((line, detail))
 
-        for error in self.error_list:
-            print(error)
-        for warning in self.warning_list:
-            print(warning)
-        for badbox in self.badbox_list:
-            print(badbox)
+        self.emit('finished')
 
-
-        self.emit('loaded')
-            

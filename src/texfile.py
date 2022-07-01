@@ -30,6 +30,16 @@ class TexFile(GtkSource.File):
             return os.path.splitext(path)[0] + ".pdf"
         else:
             return None
+
+    def get_log_path(self):
+        location = self.get_location()
+        if location is None:
+            return None
+        path = location.get_path()
+        if path:
+            return os.path.splitext(path)[0] + ".log"
+        else:
+            return None
         
     def get_tex_path(self):
         location = self.get_location()

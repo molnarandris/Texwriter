@@ -69,7 +69,7 @@ class PdfViewer(Gtk.Widget):
         try:
             doc = Poppler.Document.new_from_file(uri)
         except:
-           self.set_visible_child_name("empty")
+           self.stack.set_visible_child_name("empty")
            self.emit("loaded", False)
            return
         for i in range(doc.get_n_pages()):

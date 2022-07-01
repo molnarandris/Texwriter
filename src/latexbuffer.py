@@ -37,4 +37,4 @@ class LatexBuffer(GtkSource.Buffer):
             elif tagname == "Warning":
                 self.warnings.append(result[1])
         print("Error found, ", tagname, self.errors)
-
+        return result[1]
