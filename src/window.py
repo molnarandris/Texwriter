@@ -21,15 +21,18 @@ from gi.repository import Gtk, GObject, GtkSource, Gio, GLib, Gdk, Adw
 from .utilities import ProcessRunner
 from .documentmanager import  DocumentManager
 from .tabpage import TabPage
+from .sourceview import TexwriterSource
 
 @Gtk.Template(resource_path='/com/github/molnarandris/texwriter/window.ui')
-class TexwriterWindow(Gtk.ApplicationWindow):
+class TexwriterWindow(Adw.ApplicationWindow):
     __gtype_name__ = 'TexwriterWindow'
 
     btn_stack     = Gtk.Template.Child()
     toast_overlay = Gtk.Template.Child()
     main_stack    = Gtk.Template.Child()
     tab_view      = Gtk.Template.Child()
+    paned         = Gtk.Template.Child()
+    pdfview       = Gtk.Template.Child()
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -41,6 +44,11 @@ class TexwriterWindow(Gtk.ApplicationWindow):
         settings.bind("width", self, "default-width", Gio.SettingsBindFlags.DEFAULT)
         settings.bind("height", self, "default-height", Gio.SettingsBindFlags.DEFAULT)
         settings.bind("maximized", self, "maximized", Gio.SettingsBindFlags.DEFAULT)
+        settings.bind("paned-position", self.paned, "position", Gio.SettingsBindFlags.DEFAULT)
+
+        # This doesn't work from the ui file:
+        self.paned.set_resize_start_child(True)
+        self.paned.set_resize_end_child(True)
 
         actions = [
             ('open', self.on_open_action, ['<primary>o']),
@@ -61,11 +69,6 @@ class TexwriterWindow(Gtk.ApplicationWindow):
         self.btn_stack_handler_id = None
         self.old_tab_page = None
 
-        self.tab_view.connect("indicator-activated", self.on_indicator_activated)
-
-
-    def on_indicator_activated(self, view, pg):
-        pg.get_child().compile()
 
     def on_n_tab_change(self,tab_view, n):
         ''' Called when the number of tabs in the window change.
@@ -108,15 +111,12 @@ class TexwriterWindow(Gtk.ApplicationWindow):
         pg.set_indicator_icon(icon)
 
     def create_new_tab(self):
-        pg = TabPage()
-        tab_page = self.tab_view.append(pg)
-        tab_page.set_indicator_icon(Gio.Icon.new_for_string("media-playback-start-symbolic"))
-        tab_page.set_indicator_activatable(True)
+        src = TexwriterSource()
+        tab_page = self.tab_view.append(src)
         self.tab_view.set_selected_page(tab_page)
         flags = GObject.BindingFlags.DEFAULT | GObject.BindingFlags.SYNC_CREATE
-        pg.sourceview.bind_property("title", tab_page, "title", flags)
-        pg.sourceview.connect("notify::modified", lambda *_: self.set_pg_icon(pg.sourceview.modified, tab_page))
-        pg.connect("notify::busy", lambda *_: self.set_pg_indicator_icon(pg.busy, tab_page))
+        src.bind_property("title", tab_page, "title", flags)
+        src.connect("notify::modified", lambda *_: self.set_pg_icon(src.modified, tab_page))
         return tab_page
 
 
@@ -133,6 +133,9 @@ class TexwriterWindow(Gtk.ApplicationWindow):
                 buf.place_cursor(it)
         toast.set_timeout(1)
         self.toast_overlay.add_toast(toast)
+
+    ############################################################################
+    # File opening
 
     def open_pdf(self,sender,path):
         self.pdfview.open_file(path)
@@ -167,14 +170,17 @@ class TexwriterWindow(Gtk.ApplicationWindow):
             file = GtkSource.File.new()
             file.set_location(dialog.get_file())
             pg = self.tab_view.get_selected_page() or self.create_new_tab()
-            src = pg.get_child().sourceview
+            src = pg.get_child()
             if src.modified or src.title != "New Document":
                 pg = self.create_new_tab()
-                src = pg.get_child().sourceview
-            src.load_file(file)
+                src = pg.get_child()
+            src.load_file(file, self.load_tex_response)
         self.open_dialog = None
 
+    def load_tex_response(self,success, file):
+        self.pdfview.load(file.get_pdf_path())
 
+    ############################################################################
     def on_save_action(self, widget, _):
         pg = self.tab_view.get_selected_page()
         if pg is None:

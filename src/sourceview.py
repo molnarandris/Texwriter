@@ -17,7 +17,6 @@ class TexwriterSource(Gtk.Widget):
 
 
     __gsignals__ = {
-        'opened': (GObject.SIGNAL_RUN_LAST, None, (bool,)),
         'saved': (GObject.SIGNAL_RUN_LAST, None, (bool,)),
     }
 
@@ -32,7 +31,7 @@ class TexwriterSource(Gtk.Widget):
         self.file = None
         self.to_compile = False
 
-    def load_finish_cb(self, loader, result):
+    def load_finish_cb(self, loader, result, cb):
         success = loader.load_finish(result)
         path = loader.get_location().get_path()
         if success:
@@ -40,16 +39,18 @@ class TexwriterSource(Gtk.Widget):
             self.file.set_location(loader.get_location())
             self.set_property("modified", False)
             self.set_property("title", self.file.get_title())
-            self.emit("opened", self.file.get_pdf_path())
         else:
+            self.file = None
             print("Could not load file: " + path)
+        cb(success, self.file)
         return success
 
-    def load_file(self,file):
+    def load_file(self,file, cb):
         buffer = self.sourceview.get_buffer()
         loader = GtkSource.FileLoader.new(buffer, file)
         loader.load_async(io_priority = GLib.PRIORITY_DEFAULT,
-                          callback    = self.load_finish_cb)
+                          callback    = self.load_finish_cb,
+                          user_data   = cb)
 
 
     def save(self):

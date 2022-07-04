@@ -10,27 +10,5 @@ template TabPage {
     [start]
     .TexwriterSource sourceview {}
 
-    [end]
-    Gtk.Stack pdfstack {
-    	StackPage {
-    	  name: "pdfview";
-    	  child: .PdfViewer pdfview {};
-    	}
-    	StackPage {
-    	  name: "logview";
-        child: .LogView logview {};
-	    }
-      StackPage {
-        name: "error";
-        child: Adw.StatusPage {
-          icon-name: "dialog-warning";
-          title: "Compilation failed";
-          description: "The following errors were found:";
-          child: Gtk.ListBox errorlist {
-            styles ["boxed-list"]
-          };
-        };
-      }
-    }  // pdf stack
   } // Paned
 }

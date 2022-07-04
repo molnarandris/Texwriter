@@ -4,7 +4,6 @@ from .pdfviewer import PdfViewer
 from .logview import LogView
 from .logprocessor import LogProcessor
 
-@Gtk.Template(resource_path='/com/github/molnarandris/texwriter/tabpage.ui')
 class TabPage(Gtk.Widget):
     __gtype_name__ = 'TabPage'
 
