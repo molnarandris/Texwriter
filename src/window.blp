@@ -10,10 +10,25 @@ template TexwriterWindow {
 
     StackPage {
       name: "empty";
-      child: Adw.StatusPage {
-        title: "No document to display";
-        description: "Start or Open a document";
-        icon-name: "document-open";
+      child: Box {
+        orientation: vertical;
+        vexpand: true;
+        Adw.HeaderBar {
+          [title]
+          Label{
+            label: "Texwriter";
+          }
+          [end]
+          MenuButton {
+            icon-name: "open-menu-symbolic";
+            menu-model: primary_menu;
+          }
+        }
+        Adw.StatusPage {
+          title: "No document to display";
+          description: "Start or Open a document";
+          icon-name: "document-open";
+        }
       };
     }
     StackPage {
@@ -30,11 +45,11 @@ template TexwriterWindow {
               Box {
                 orientation: horizontal;
                 hexpand: true;
-                Button btn_tab {
+                Button {
                   icon-name: "tab-new-symbolic";
                   action-name: "win.new-tab";
                 }
-                Adw.TabBar tab_bar {
+                Adw.TabBar {
                   view: tab_view;
                   hexpand: true;
                   autohide: false;
@@ -73,27 +88,8 @@ template TexwriterWindow {
                 }
               }
             } // AdwHeaderBar
-            Gtk.Stack pdfstack {
+            Gtk.Stack pdf_stack {
               vexpand: true;
-            	StackPage {
-            	  name: "pdfview";
-            	  child: .PdfViewer pdfview {};
-            	}
-            	StackPage {
-            	  name: "logview";
-                child: .LogView logview {};
-	            }
-              StackPage {
-                name: "error";
-                child: Adw.StatusPage {
-                  icon-name: "dialog-warning";
-                  title: "Compilation failed";
-                  description: "The following errors were found:";
-                  child: Gtk.ListBox errorlist {
-                    styles ["boxed-list"]
-                  };
-                };
-              }
             }  // pdf stack
           } // Box
         } // Paned

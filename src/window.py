@@ -20,8 +20,7 @@ gi.require_version('GtkSource', '5')
 from gi.repository import Gtk, GObject, GtkSource, Gio, GLib, Gdk, Adw
 from .utilities import ProcessRunner
 from .documentmanager import  DocumentManager
-from .tabpage import TabPage
-from .sourceview import TexwriterSource
+from .editor_page import EditorPage
 
 @Gtk.Template(resource_path='/com/github/molnarandris/texwriter/window.ui')
 class TexwriterWindow(Adw.ApplicationWindow):
@@ -32,7 +31,7 @@ class TexwriterWindow(Adw.ApplicationWindow):
     main_stack    = Gtk.Template.Child()
     tab_view      = Gtk.Template.Child()
     paned         = Gtk.Template.Child()
-    pdfview       = Gtk.Template.Child()
+    pdf_stack     = Gtk.Template.Child()
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -111,7 +110,7 @@ class TexwriterWindow(Adw.ApplicationWindow):
         pg.set_indicator_icon(icon)
 
     def create_new_tab(self):
-        src = TexwriterSource()
+        src = EditorPage()
         tab_page = self.tab_view.append(src)
         self.tab_view.set_selected_page(tab_page)
         flags = GObject.BindingFlags.DEFAULT | GObject.BindingFlags.SYNC_CREATE

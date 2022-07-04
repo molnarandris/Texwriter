@@ -78,17 +78,6 @@ class TabPage(Gtk.Widget):
     def dispose_cb(self, _):
         self.paned.unparent()
 
-    def on_compile_finished(self, proc, result, data):
-        self.to_compile = False
-        if not proc.get_successful():
-            print("Compile failed")
-            self.pdfstack.set_visible_child_name("error")
-            self.logprocessor.process()
-            return
-        self.set_property("busy", False)
-        self.pdfstack.set_visible_child_name("pdfview")
-        self.pdfview.load(self.sourceview.file.get_pdf_path())
-        self.emit("compiled", proc.get_successful())
 
     def clear_error_list(self):
         c = self.errorlist.get_first_child()
@@ -97,24 +86,6 @@ class TabPage(Gtk.Widget):
             c = self.errorlist.get_first_child()
 
 
-    def compile(self, save = True):
-        self.clear_error_list()
-        if self.sourceview.file is None:
-            return
-        self.set_property("busy", True)
-        if save and self.sourceview.modified:
-            self.to_compile = True
-            self.sourceview.save()
-            return  # we have to wait for the saving to finish
-        self.to_compile = False
-        self.sourceview.clear_tags()
-        path = self.sourceview.file.get_tex_path()
-        directory = self.sourceview.file.get_dir()
-        cmd = ['flatpak-spawn', '--host', 'latexmk', '-synctex=1', '-interaction=nonstopmode',
-               '-pdf', '-halt-on-error', "--output-directory="+ directory, path]
-        print(path)
-        proc = Gio.Subprocess.new(cmd, Gio.SubprocessFlags.STDOUT_PIPE|Gio.SubprocessFlags.STDERR_PIPE)
-        proc.communicate_utf8_async(None, None, self.on_compile_finished, None)
 
     def saved_cb(self, widget, success):
         if not success:

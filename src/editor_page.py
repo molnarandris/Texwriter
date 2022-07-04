@@ -4,9 +4,9 @@ from gi.repository import Gtk, GtkSource, GObject, GLib, Gio
 from .latexbuffer import LatexBuffer
 from .texfile import TexFile
 
-@Gtk.Template(resource_path='/com/github/molnarandris/texwriter/sourceview.ui')
-class TexwriterSource(Gtk.Widget):
-    __gtype_name__ = "TexwriterSource"
+@Gtk.Template(resource_path='/com/github/molnarandris/texwriter/editor_page.ui')
+class EditorPage(Gtk.Widget):
+    __gtype_name__ = "EditorPage"
 
     GObject.type_register(GtkSource.View)
 
@@ -119,3 +119,37 @@ class TexwriterSource(Gtk.Widget):
 
     def clear_tags(self):
         self.sourceview.get_buffer().clear_tags()
+
+    ############################################################################
+    # Compilation
+
+    def on_compile_finished(self, proc, result, data):
+        self.to_compile = False
+        if not proc.get_successful():
+            print("Compile failed")
+            #self.pdfstack.set_visible_child_name("error")
+            #self.logprocessor.process()
+            return
+        self.set_property("busy", False)
+        #self.pdfstack.set_visible_child_name("pdfview")
+        #self.pdfview.load(self.sourceview.file.get_pdf_path())
+        self.emit("compiled", proc.get_successful())
+
+    def compile(self, save = True):
+        self.clear_tags()
+        if self.file is None:
+            return
+        self.set_property("busy", True)
+        if save and self.modified:
+            self.to_compile = True
+            self.save()
+            return  # we have to wait for the saving to finish
+        self.to_compile = False
+        self.clear_tags()
+        path = self.file.get_tex_path()
+        directory = self.file.get_dir()
+        cmd = ['flatpak-spawn', '--host', 'latexmk', '-synctex=1', '-interaction=nonstopmode',
+               '-pdf', '-halt-on-error', "--output-directory="+ directory, path]
+        proc = Gio.Subprocess.new(cmd, Gio.SubprocessFlags.STDOUT_PIPE|Gio.SubprocessFlags.STDERR_PIPE)
+        proc.communicate_utf8_async(None, None, self.on_compile_finished, None)
+        

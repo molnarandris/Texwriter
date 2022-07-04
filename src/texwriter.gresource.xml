@@ -3,8 +3,8 @@
   <gresource prefix="/com/github/molnarandris/texwriter">
     <file>window.ui</file>
     <file>pdfviewer.ui</file>
-    <file>sourceview.ui</file>
-    <file>tabpage.ui</file>
+    <file>editor_page.ui</file>
+    <file>viewer_page.ui</file>
     <file>gtk/help-overlay.ui</file>
   </gresource>
 </gresources>

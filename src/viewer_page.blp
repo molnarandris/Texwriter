@@ -1,0 +1,42 @@
+using Gtk 4.0;
+using Adw 1;
+
+
+template ViewerPage: Widget{
+  Gtk.Stack main_stack {
+  	StackPage {
+  	  name: "pdfview";
+  	  child: .PdfViewer pdfviewer {};
+  	}
+  	StackPage {
+  	  name: "logview";
+  	  child: Gtk.Box{
+  	    orientation: vertical;
+  	    vexpand: true;
+  	    Label {
+  	      label: "The following warnings were found:";
+  	    }
+        Gtk.ListBox warninglist {
+          styles ["boxed-list"]
+        }
+  	    Label {
+  	      label: "The following badboxes were found:";
+  	    }
+        Gtk.ListBox badboxlist {
+          styles ["boxed-list"]
+        }
+  	  };
+    }
+    StackPage {
+      name: "errorview";
+      child: Adw.StatusPage {
+        icon-name: "dialog-warning";
+        title: "Compilation failed";
+        description: "The following errors were found:";
+        child: Gtk.ListBox errorlist {
+          styles ["boxed-list"]
+        };
+      };
+    }
+  }
+}
