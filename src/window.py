@@ -21,6 +21,7 @@ from gi.repository import Gtk, GObject, GtkSource, Gio, GLib, Gdk, Adw
 from .utilities import ProcessRunner
 from .documentmanager import  DocumentManager
 from .editor_page import EditorPage
+from .pdfviewer import PdfViewer
 
 @Gtk.Template(resource_path='/com/github/molnarandris/texwriter/window.ui')
 class TexwriterWindow(Adw.ApplicationWindow):
@@ -92,6 +93,14 @@ class TexwriterWindow(Adw.ApplicationWindow):
 
         self.btn_stack_handler_id = tab_page.connect("notify::busy", lambda obj,_: self.btn_stack.set_visible_child_name("cancel") if obj.get_property("busy") else self.btn_stack.set_visible_child_name("compile"))
         self.old_tab_page = tab_page
+        if tab_page.file is None:
+            self.pdf_stack.set_visible_child_name("empty")
+            return
+        path = tab_page.file.get_pdf_path()
+        if path is None:
+            self.pdf_stack.set_visible_child_name("empty")
+        else:
+            self.pdf_stack.set_visible_child_name(path)
 
     def set_pg_icon(self, b, pg):
         ''' Sets the icon of a given tab page
@@ -116,6 +125,8 @@ class TexwriterWindow(Adw.ApplicationWindow):
         flags = GObject.BindingFlags.DEFAULT | GObject.BindingFlags.SYNC_CREATE
         src.bind_property("title", tab_page, "title", flags)
         src.connect("notify::modified", lambda *_: self.set_pg_icon(src.modified, tab_page))
+        if src.file is None:
+            self.pdf_stack.set_visible_child_name("empty")
         return tab_page
 
 
@@ -177,7 +188,18 @@ class TexwriterWindow(Adw.ApplicationWindow):
         self.open_dialog = None
 
     def load_tex_response(self,success, file):
-        self.pdfview.load(file.get_pdf_path())
+        path = file.get_pdf_path()
+        if path is None:
+            self.pdf_stack.set_visible_child_name("empty")
+            return
+        child = self.pdf_stack.get_child_by_name(path)
+        if child is None:
+           child = PdfViewer()
+           child.load(path)
+           self.pdf_stack.add_named(child, path)
+        self.pdf_stack.set_visible_child(child)
+
+        #self.pdfview.load(file.get_pdf_path())
 
     ############################################################################
     def on_save_action(self, widget, _):

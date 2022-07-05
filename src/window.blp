@@ -25,6 +25,7 @@ template TexwriterWindow {
           }
         }
         Adw.StatusPage {
+          vexpand: true;
           title: "No document to display";
           description: "Start or Open a document";
           icon-name: "document-open";
@@ -90,6 +91,14 @@ template TexwriterWindow {
             } // AdwHeaderBar
             Gtk.Stack pdf_stack {
               vexpand: true;
+                StackPage {
+                  name: "empty";
+                  child: Adw.StatusPage {
+                    title: "No pdf document to display";
+                    description: "Compile the latex source to display the corresponding pdf";
+                    icon-name: "document-open";
+                  };
+                }
             }  // pdf stack
           } // Box
         } // Paned
