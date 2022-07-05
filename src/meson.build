@@ -47,13 +47,13 @@ texwriter_sources = [
   'window.py',
   'pdfviewer.py',
   'utilities.py',
-  'documentmanager.py',
   'latexbuffer.py',
   'logview.py',
   'editor_page.py',
   'texfile.py',
-  'tabpage.py',
   'logprocessor.py',
+  'viewer_page.py',
+  'editor_page.py'
 ]
 
 install_data(texwriter_sources, install_dir: moduledir)

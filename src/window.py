@@ -21,7 +21,7 @@ from gi.repository import Gtk, GObject, GtkSource, Gio, GLib, Gdk, Adw
 from .utilities import ProcessRunner
 from .documentmanager import  DocumentManager
 from .editor_page import EditorPage
-from .pdfviewer import PdfViewer
+from .viewer_page import ViewerPage
 
 @Gtk.Template(resource_path='/com/github/molnarandris/texwriter/window.ui')
 class TexwriterWindow(Adw.ApplicationWindow):
@@ -141,10 +141,6 @@ class TexwriterWindow(Adw.ApplicationWindow):
     ############################################################################
     # File opening
 
-    def open_pdf(self,sender,path):
-        self.pdfview.open_file(path)
-        self.activate_action("win.synctex-fwd", None)
-
     def on_open_action(self, widget, _):
         dialog = Gtk.FileChooserNative.new(
                     "Open File",
@@ -188,7 +184,7 @@ class TexwriterWindow(Adw.ApplicationWindow):
             return
         child = self.pdf_stack.get_child_by_name(path)
         if child is None:
-            child = PdfViewer()
+            child = ViewerPage()
             child.load(path)
             self.pdf_stack.add_named(child, path)
         self.pdf_stack.set_visible_child(child)
@@ -198,41 +194,23 @@ class TexwriterWindow(Adw.ApplicationWindow):
     ############################################################################
     # Compilation
 
-    def on_compiled(self, sender, success):
-        self.btn_stack.set_visible_child_name("compile")
-        if success:
-            toast = Adw.Toast.new("Compile succeeded")
-        else:
-            toast = Adw.Toast.new("Compile failed")
-            buf = self.sourceview.get_buffer()
-            if buf.errors:
-                it = buf.errors[0]
-                self.sourceview.scroll_to_iter(it, 0.3, False, 0, 0)
-                buf.place_cursor(it)
-        toast.set_timeout(1)
-        self.toast_overlay.add_toast(toast)
-
-
     def on_compile_finished(self, proc, result, data):
         print("Compile finished")
         self.to_compile = False
         tab_page = data
+        path = tab_page.get_child().file.get_pdf_path()
         if not proc.get_successful():
             print("Compile failed")
-            #self.pdfstack.set_visible_child_name("error")
-            #self.logprocessor.process()
-            return
-        path = tab_page.get_child().file.get_pdf_path()
-        pdfviewer = self.pdf_stack.get_child_by_name(path)
-        if pdfviewer is None:
-            pdfviewer = PdfViewer()
-            self.pdf_stack.add_named(pdfviewer, path)
-        pdfviewer.load(path)
-        self.pdf_stack.set_visible_child(pdfviewer)
-        #self.set_property("busy", False)
-        #self.pdfstack.set_visible_child_name("pdfview")
-        #self.pdfview.load(self.sourceview.file.get_pdf_path())
-        #self.emit("compiled", proc.get_successful())
+            toast = Adw.Toast.new("Compile failed")
+        else:
+            pdfviewer = self.pdf_stack.get_child_by_name(path)
+            if pdfviewer is None:
+                pdfviewer = PdfViewer()
+                self.pdf_stack.add_named(pdfviewer, path)
+            pdfviewer.load(path)
+            toast = Adw.Toast.new("Compile succeeded")
+        toast.set_timeout(1)
+        self.toast_overlay.add_toast(toast)
 
     def compile(self, save = True):
         tab_page = self.tab_view.get_selected_page()
@@ -245,10 +223,10 @@ class TexwriterWindow(Adw.ApplicationWindow):
         #self.set_property("busy", True)
         if save and editor_page.modified:
             self.to_compile = True
-            editor_page.save(self.on_save_finished)
+            editor_page.save(lambda: self.compile(False))
             return  # we have to wait for the saving to finish
         self.to_compile = False
-        editor_page.clear_tags()
+        #editor_page.clear_tags()
         path = file.get_root_path()
         directory = file.get_dir()
         cmd = ['flatpak-spawn', '--host', 'latexmk', '-synctex=1', '-interaction=nonstopmode',

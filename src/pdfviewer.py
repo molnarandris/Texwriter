@@ -101,7 +101,6 @@ class PdfViewer(Gtk.Widget):
         hadj.set_value((h + self.x) * s - self.x)
         vadj.set_value((v + self.y) * s - self.y)
         return Gdk.EVENT_STOP
-
     def on_click(self, controller, n, x, y):
         pass
 
@@ -220,5 +219,6 @@ class PdfPage(Gtk.Widget):
         ctx = snapshot.append_cairo(rect)
         ctx.scale(self.scale,self.scale)
         self.pg.render(ctx)
+
 
 
