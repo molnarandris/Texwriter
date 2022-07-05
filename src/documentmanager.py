@@ -24,27 +24,7 @@ class DocumentManager(GObject.GObject):
 
 
 
-    def compile(self):
-        def on_compile_finished(sender):
-            if sender.result == 0:
-                # Compilation was successful
-                tex = self.file.get_location().get_path()
-                pdf = os.path.splitext(tex)[0] + ".pdf"
-                self.emit("open-pdf", pdf)
-                self.emit("compiled", True)
-                self.to_compile = False
-            else:
-                # Compilation failed
-                self.logprocessor.run()
 
-        self.buffer.clear_tags()
-        tex = self.file.get_location().get_path()
-        directory = os.path.dirname(tex)
-        cmd = ['flatpak-spawn', '--host', '/usr/bin/latexmk', '-synctex=1', '-interaction=nonstopmode',
-               '-pdf', '-halt-on-error', '-output-directory=' + directory, tex]
-        proc = ProcessRunner(cmd)
-        self.cancellable = proc.cancellable
-        proc.connect('finished', on_compile_finished)
 
     def cancel(self):
         self.cancellable.cancel()

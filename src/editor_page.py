@@ -53,7 +53,7 @@ class EditorPage(Gtk.Widget):
                           user_data   = cb)
 
 
-    def save(self):
+    def save(self, callback = None):
         if self.file is None:
             dialog = Gtk.FileChooserNative.new(
                         "Save File",
@@ -73,7 +73,7 @@ class EditorPage(Gtk.Widget):
             filter_any.add_pattern("*")
             dialog.add_filter(filter_any)
 
-            dialog.connect("response", self.on_save_response)
+            dialog.connect("response", self.on_save_response, callback)
             dialog.set_modal(True)
             dialog.show()
             self.save_dialog = dialog
@@ -81,9 +81,10 @@ class EditorPage(Gtk.Widget):
             buffer = self.sourceview.get_buffer()
             saver = GtkSource.FileSaver.new(buffer, self.file)
             saver.save_async(io_priority = GLib.PRIORITY_DEFAULT,
-                             callback = self.save_finish_cb)
+                             callback = self.save_finish_cb,
+                             user_data = callback)
 
-    def on_save_response(self, dialog, response):
+    def on_save_response(self, dialog, response, callback):
         if response != Gtk.ResponseType.ACCEPT:
             self.save_dialog = None
             return
@@ -91,10 +92,10 @@ class EditorPage(Gtk.Widget):
         file.set_location(dialog.get_file())
         self.file = file
         self.save_dialog = None
-        self.save()
+        self.save(callback)
 
 
-    def save_finish_cb(self, saver, result):
+    def save_finish_cb(self, saver, result, callback):
         success = saver.save_finish(result)
         path = saver.get_location().get_path()
         if success:
@@ -103,6 +104,8 @@ class EditorPage(Gtk.Widget):
         else:
             print("Could not save file: " + path)
             self.emit("saved", False)
+        if callback:
+            callback()
         return success
 
     def synctex_bck(self,sender, line):
@@ -120,36 +123,4 @@ class EditorPage(Gtk.Widget):
     def clear_tags(self):
         self.sourceview.get_buffer().clear_tags()
 
-    ############################################################################
-    # Compilation
 
-    def on_compile_finished(self, proc, result, data):
-        self.to_compile = False
-        if not proc.get_successful():
-            print("Compile failed")
-            #self.pdfstack.set_visible_child_name("error")
-            #self.logprocessor.process()
-            return
-        self.set_property("busy", False)
-        #self.pdfstack.set_visible_child_name("pdfview")
-        #self.pdfview.load(self.sourceview.file.get_pdf_path())
-        self.emit("compiled", proc.get_successful())
-
-    def compile(self, save = True):
-        self.clear_tags()
-        if self.file is None:
-            return
-        self.set_property("busy", True)
-        if save and self.modified:
-            self.to_compile = True
-            self.save()
-            return  # we have to wait for the saving to finish
-        self.to_compile = False
-        self.clear_tags()
-        path = self.file.get_tex_path()
-        directory = self.file.get_dir()
-        cmd = ['flatpak-spawn', '--host', 'latexmk', '-synctex=1', '-interaction=nonstopmode',
-               '-pdf', '-halt-on-error', "--output-directory="+ directory, path]
-        proc = Gio.Subprocess.new(cmd, Gio.SubprocessFlags.STDOUT_PIPE|Gio.SubprocessFlags.STDERR_PIPE)
-        proc.communicate_utf8_async(None, None, self.on_compile_finished, None)
-        

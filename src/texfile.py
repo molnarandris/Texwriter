@@ -54,3 +54,9 @@ class TexFile(GtkSource.File):
         path = location.get_path()
         return os.path.dirname(path)
         
+    def get_root(self):
+        return self.get_location()
+
+    def get_root_path(self):
+        return self.get_location().get_path()
+        

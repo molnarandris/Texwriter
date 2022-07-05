@@ -69,6 +69,8 @@ class TexwriterWindow(Adw.ApplicationWindow):
         self.btn_stack_handler_id = None
         self.old_tab_page = None
 
+################################################################################
+# Tab management
 
     def on_n_tab_change(self,tab_view, n):
         ''' Called when the number of tabs in the window change.
@@ -129,20 +131,12 @@ class TexwriterWindow(Adw.ApplicationWindow):
             self.pdf_stack.set_visible_child_name("empty")
         return tab_page
 
-
-    def on_compiled(self, sender, success):
-        self.btn_stack.set_visible_child_name("compile")
-        if success:
-            toast = Adw.Toast.new("Compile succeeded")
-        else:
-            toast = Adw.Toast.new("Compile failed")
-            buf = self.sourceview.get_buffer()
-            if buf.errors:
-                it = buf.errors[0]
-                self.sourceview.scroll_to_iter(it, 0.3, False, 0, 0)
-                buf.place_cursor(it)
-        toast.set_timeout(1)
-        self.toast_overlay.add_toast(toast)
+    def on_close_tab(self, widget, _):
+        pg = self.tab_view.get_selected_page()
+        if pg is None:
+            self.close()
+            return
+        self.tab_view.close_page(pg)
 
     ############################################################################
     # File opening
@@ -194,35 +188,94 @@ class TexwriterWindow(Adw.ApplicationWindow):
             return
         child = self.pdf_stack.get_child_by_name(path)
         if child is None:
-           child = PdfViewer()
-           child.load(path)
-           self.pdf_stack.add_named(child, path)
+            child = PdfViewer()
+            child.load(path)
+            self.pdf_stack.add_named(child, path)
         self.pdf_stack.set_visible_child(child)
 
         #self.pdfview.load(file.get_pdf_path())
 
     ############################################################################
+    # Compilation
+
+    def on_compiled(self, sender, success):
+        self.btn_stack.set_visible_child_name("compile")
+        if success:
+            toast = Adw.Toast.new("Compile succeeded")
+        else:
+            toast = Adw.Toast.new("Compile failed")
+            buf = self.sourceview.get_buffer()
+            if buf.errors:
+                it = buf.errors[0]
+                self.sourceview.scroll_to_iter(it, 0.3, False, 0, 0)
+                buf.place_cursor(it)
+        toast.set_timeout(1)
+        self.toast_overlay.add_toast(toast)
+
+
+    def on_compile_finished(self, proc, result, data):
+        print("Compile finished")
+        self.to_compile = False
+        tab_page = data
+        if not proc.get_successful():
+            print("Compile failed")
+            #self.pdfstack.set_visible_child_name("error")
+            #self.logprocessor.process()
+            return
+        path = tab_page.get_child().file.get_pdf_path()
+        pdfviewer = self.pdf_stack.get_child_by_name(path)
+        if pdfviewer is None:
+            pdfviewer = PdfViewer()
+            self.pdf_stack.add_named(pdfviewer, path)
+        pdfviewer.load(path)
+        self.pdf_stack.set_visible_child(pdfviewer)
+        #self.set_property("busy", False)
+        #self.pdfstack.set_visible_child_name("pdfview")
+        #self.pdfview.load(self.sourceview.file.get_pdf_path())
+        #self.emit("compiled", proc.get_successful())
+
+    def compile(self, save = True):
+        tab_page = self.tab_view.get_selected_page()
+        if tab_page is None:
+            return
+        editor_page = tab_page.get_child()
+        file = editor_page.file
+        if file is None:
+            return
+        #self.set_property("busy", True)
+        if save and editor_page.modified:
+            self.to_compile = True
+            editor_page.save(self.on_save_finished)
+            return  # we have to wait for the saving to finish
+        self.to_compile = False
+        editor_page.clear_tags()
+        path = file.get_root_path()
+        directory = file.get_dir()
+        cmd = ['flatpak-spawn', '--host', 'latexmk', '-synctex=1', '-interaction=nonstopmode',
+               '-pdf', '-halt-on-error', "--output-directory="+ directory, path]
+        proc = Gio.Subprocess.new(cmd, Gio.SubprocessFlags.STDOUT_SILENCE)
+        proc.communicate_utf8_async(None, None, self.on_compile_finished, tab_page)
+        print("Compiling")
+
+    def on_compile_action(self, widget, _):
+        self.btn_stack.set_visible_child_name("cancel")
+        self.compile()
+
+    ############################################################################
+    # Saving:
     def on_save_action(self, widget, _):
         pg = self.tab_view.get_selected_page()
         if pg is None:
             return
-        src = pg.get_child().sourceview
-        src.save()
+        src = pg.get_child()
+        src.save(self.on_save_finished)
 
-    def on_close_tab(self, widget, _):
-        pg = self.tab_view.get_selected_page()
-        if pg is None:
-            self.close()
-            return
-        self.tab_view.close_page(pg)
+    def on_save_finished(self):
+        print("save finished")
+        if self.to_compile:
+            self.compile(save = False)
 
-    def on_compile_action(self, widget, _):
-        pg = self.tab_view.get_selected_page()
-        if pg is None:
-            return
-        tab_page = pg.get_child()
-        tab_page.compile()
-        self.btn_stack.set_visible_child_name("cancel")
+    ############################################################################
 
     def on_cancel_action(self, widget, _):
         self.documentmanager.cancel()
