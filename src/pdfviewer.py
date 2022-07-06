@@ -39,11 +39,6 @@ class PdfViewer(Gtk.Widget):
         controller.set_flags(Gtk.EventControllerScrollFlags.VERTICAL)
         self.box.add_controller(controller)
 
-        controller = Gtk.GestureClick()
-        controller.connect("pressed", self.on_click)
-        controller.set_propagation_phase(Gtk.PropagationPhase.BUBBLE)
-        self.add_controller(controller)
-
         # As can't get event coordinates, need to store pointer coordinates
         controller = Gtk.EventControllerMotion()
         controller.connect("motion", self.on_motion)
@@ -59,8 +54,6 @@ class PdfViewer(Gtk.Widget):
             self.box.remove(child)
             child = self.box.get_first_child()
 
-        print("Opening pdf: ",  path)
-
         if path is None:
             self.stack.set_visible_child_name("empty")
             return
@@ -75,6 +68,7 @@ class PdfViewer(Gtk.Widget):
         for i in range(doc.get_n_pages()):
             pg = PdfPage(doc.get_page(i))
             pg.set_scale(self.scale)
+            pg.connect("synctex-back", self.on_synctex_back)
             overlay = Gtk.Overlay()
             overlay.set_child(pg)
             self.box.append(overlay)
@@ -82,6 +76,17 @@ class PdfViewer(Gtk.Widget):
         self.stack.set_visible_child_name("pdf")
         self.emit("loaded", True)
 
+    def on_synctex_back(self, sender, string):
+        arg = string + ":" + self.path
+        cmd = ['flatpak-spawn', '--host', 'synctex', 'edit', '-o', arg]
+        proc = ProcessRunner(cmd)
+        proc.connect('finished', self.synctex_back_finished)
+
+    def synctex_back_finished(self,sender):
+        result = re.search("Line:(.*)", sender.stdout)
+        line = int(result.group(1))
+        self.emit("synctex-bck", line)
+        print(sender.stdout)
 
     # Far from perfect, but more or less works. Should not render right at zoom.
     def on_scroll(self, controller, dx, dy):
@@ -102,8 +107,6 @@ class PdfViewer(Gtk.Widget):
         hadj.set_value((h + self.x) * s - self.x)
         vadj.set_value((v + self.y) * s - self.y)
         return Gdk.EVENT_STOP
-    def on_click(self, controller, n, x, y):
-        pass
 
     def synctex_fwd(self, page, x, y, h, v, H, W):
         rect = SynctexRect(W,H,h,v,self.scale)
@@ -171,6 +174,10 @@ class SynctexRect(Gtk.Widget):
 class PdfPage(Gtk.Widget):
     __gtype_name__ = 'PdfPage'
 
+    __gsignals__ = {
+        'synctex-back': (GObject.SIGNAL_RUN_FIRST, None, (str,)),
+    }
+
     def __init__(self, pg):
         super().__init__()
         self.set_halign(Gtk.Align.FILL)
@@ -185,19 +192,10 @@ class PdfPage(Gtk.Widget):
         self.add_controller(controller)
 
     def on_click(self, controller, n, x,y):
-
-        def on_synctex_finished(sender):
-            result = re.search("Line:(.*)", sender.stdout)
-            line = int(result.group(1))
-            self.get_parent().get_parent().emit("synctex-bck", line)
-
         if not (controller.get_current_event_state() & Gdk.ModifierType.CONTROL_MASK):
             return Gdk.EVENT_PROPAGATE
-        arg = str(self.pg.get_index()+1) + ":" + str(x/self.scale) + ":" + str(y/self.scale) + ":" + self.get_parent().get_parent().path
-        cmd = ['flatpak-spawn', '--host', 'synctex', 'edit', '-o', arg]
-        proc = ProcessRunner(cmd)
-        proc.connect('finished', on_synctex_finished)
-
+        arg = str(self.pg.get_index()+1) + ":" + str(x/self.scale) + ":" + str(y/self.scale)
+        self.emit("synctex-back", arg)
         controller.set_state(Gtk.EventSequenceState.CLAIMED)
 
 
