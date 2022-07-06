@@ -10,7 +10,7 @@ class LogProcessor(GObject.GObject):
     # The regexps to look for in the log file
     badbox_re  = re.compile("^Overfull.* ([0-9]+)\-\-[0-9]+\n",re.MULTILINE)
     warning_re = re.compile("^LaTeX Warning: (Reference|Citation) `(.*)'.* ([0-9]*)\.\n",re.MULTILINE)
-    error_re   = re.compile("^! (.*)\nl\.([0-9]*)(.*?$)",re.MULTILINE|re.DOTALL)
+    error_re   = re.compile("^! (.*)\.\nl\.([0-9]*) (.*$)",re.MULTILINE)
 
     def __init__(self):
         super().__init__()
@@ -37,7 +37,7 @@ class LogProcessor(GObject.GObject):
 
         for m in re.finditer(self.error_re, log):
             line   = int(m.group(2))-1
-            detail = m.group(3)[4:]
+            detail = m.group(3)
             description = m.group(1)
             self.error_list.append((description,line,detail))
 

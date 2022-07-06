@@ -185,7 +185,7 @@ class TexwriterWindow(Adw.ApplicationWindow):
         child = self.pdf_stack.get_child_by_name(path)
         if child is None:
             child = ViewerPage()
-            child.load(path)
+            child.load_pdf(path)
             self.pdf_stack.add_named(child, path)
         self.pdf_stack.set_visible_child(child)
 
@@ -199,16 +199,18 @@ class TexwriterWindow(Adw.ApplicationWindow):
         self.to_compile = False
         tab_page = data
         path = tab_page.get_child().file.get_pdf_path()
+        viewer_page = self.pdf_stack.get_child_by_name(path)
+        if viewer_page is None:
+            viewer_page = ViewerPage()
+            self.pdf_stack.add_named(viewer_page, path)
         if not proc.get_successful():
             print("Compile failed")
             toast = Adw.Toast.new("Compile failed")
+            path = tab_page.get_child().file.get_log_path()
+            viewer_page.load_error(path)
         else:
-            pdfviewer = self.pdf_stack.get_child_by_name(path)
-            if pdfviewer is None:
-                pdfviewer = PdfViewer()
-                self.pdf_stack.add_named(pdfviewer, path)
-            pdfviewer.load(path)
             toast = Adw.Toast.new("Compile succeeded")
+            viewer_page.load_pdf(path)
         toast.set_timeout(1)
         self.toast_overlay.add_toast(toast)
 
@@ -230,8 +232,8 @@ class TexwriterWindow(Adw.ApplicationWindow):
         path = file.get_root_path()
         directory = file.get_dir()
         cmd = ['flatpak-spawn', '--host', 'latexmk', '-synctex=1', '-interaction=nonstopmode',
-               '-pdf', '-halt-on-error', "--output-directory="+ directory, path]
-        proc = Gio.Subprocess.new(cmd, Gio.SubprocessFlags.STDOUT_SILENCE)
+               '-pdf', "-g", "--output-directory="+ directory, path]
+        proc = Gio.Subprocess.new(cmd, Gio.SubprocessFlags.NONE)
         proc.communicate_utf8_async(None, None, self.on_compile_finished, tab_page)
         print("Compiling")
 
