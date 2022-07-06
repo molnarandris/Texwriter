@@ -42,5 +42,9 @@ class ViewerPage(Gtk.Widget):
             row.data = e
             row.set_title(f"{e[0]}: \"{e[2]}\" on line {e[1]}")
             self.errorlist.append(row)
+            row.connect("activated", self.error_row_activated)
         self.main_stack.set_visible_child_name("errorview")
+        
+    def error_row_activated(self, row):
+        print("Row activated")
         
