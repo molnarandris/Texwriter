@@ -74,6 +74,7 @@ class PdfViewer(Gtk.Widget):
            return
         for i in range(doc.get_n_pages()):
             pg = PdfPage(doc.get_page(i))
+            pg.set_scale(self.scale)
             overlay = Gtk.Overlay()
             overlay.set_child(pg)
             self.box.append(overlay)
