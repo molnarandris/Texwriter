@@ -21,6 +21,7 @@ from gi.repository import Gtk, GObject, GtkSource, Gio, GLib, Gdk, Adw
 from .utilities import ProcessRunner
 from .editor_page import EditorPage
 from .viewer_page import ViewerPage
+from .texfile import TexFile
 
 @Gtk.Template(resource_path='/com/github/molnarandris/texwriter/window.ui')
 class TexwriterWindow(Adw.ApplicationWindow):
@@ -140,6 +141,13 @@ class TexwriterWindow(Adw.ApplicationWindow):
             return
         self.tab_view.close_page(pg)
 
+    def get_tab_for_path(self, path):
+        for pg in self.tab_view.get_pages():
+            if pg.get_child().file and path == pg.get_child().file.get_tex_path():
+                return pg
+        return None
+
+
     ############################################################################
     # File opening
 
@@ -169,8 +177,13 @@ class TexwriterWindow(Adw.ApplicationWindow):
 
     def on_open_response(self, dialog, response):
         if response == Gtk.ResponseType.ACCEPT:
-            file = GtkSource.File.new()
+            file = TexFile()
             file.set_location(dialog.get_file())
+            path = file.get_tex_path()
+            pg = self.get_tab_for_path(path)
+            if pg:
+                self.tab_view.set_selected_page(pg)
+                return
             pg = self.tab_view.get_selected_page() or self.create_new_tab()
             src = pg.get_child()
             if src.modified or src.title != "New Document":
