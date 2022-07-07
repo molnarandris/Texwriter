@@ -18,7 +18,6 @@ class ViewerPage(Gtk.Widget):
         self.logprocessor = LogProcessor()
         self.logprocessor.connect("finished", self.load_error_finish)
 
-
     def load_pdf(self, path):
         self.pdfviewer.load(path)
         self.main_stack.set_visible_child_name("pdfview")

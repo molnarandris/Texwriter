@@ -123,4 +123,32 @@ class EditorPage(Gtk.Widget):
     def clear_tags(self):
         self.sourceview.get_buffer().clear_tags()
 
+    def goto(self, line, context, offset):
+        """Scrolls to the given line, searches for the string given in context and
+        places the cursor at offset inside of the string context.
+
+        :param int line:
+            The line to scroll to.
+        :param str context:
+            The string to look for in the given line.
+        :param int offset:
+            The offser within str to place the cursor at. If offset is negative, it
+            places the cursor to the end, -1 meaning after the last character.
+        """
+
+        buffer = self.sourceview.get_buffer()
+        begin_it = buffer.get_iter_at_line_offset(line, 0)[1]
+        limit_it = buffer.get_iter_at_line_offset(line+1, 0)[1]
+        flag = Gtk.TextSearchFlags.TEXT_ONLY
+        ok, start_it, end_it = begin_it.forward_search(context, flag, limit_it)
+        if ok:
+            if offset >= 0:
+                it = start_it.forward_chars(offset)
+            else:
+                it = end_it.backward_chars(-offset-1)
+        else:
+            it = begin_it
+        self.sourceview.scroll_to_iter(it, 0.3, False, 0, 0)
+        buffer.place_cursor(it)
+        self.sourceview.sourceview.grab_focus()
 

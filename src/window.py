@@ -19,7 +19,6 @@ import os, re, gi
 gi.require_version('GtkSource', '5')
 from gi.repository import Gtk, GObject, GtkSource, Gio, GLib, Gdk, Adw
 from .utilities import ProcessRunner
-from .documentmanager import  DocumentManager
 from .editor_page import EditorPage
 from .viewer_page import ViewerPage
 
@@ -258,7 +257,8 @@ class TexwriterWindow(Adw.ApplicationWindow):
     ############################################################################
 
     def on_cancel_action(self, widget, _):
-        self.documentmanager.cancel()
+        pass
+
 
     def create_action(self, name, callback, shortcuts=None):
         """Add a window action.

@@ -22,24 +22,16 @@ class TexFile(GtkSource.File):
         return os.path.splitext(path)[0]
 
     def get_pdf_path(self):
-        location = self.get_location()
-        if location is None:
+        base = self.get_root_base()
+        if base is None:
             return None
-        path = location.get_path()
-        if path:
-            return os.path.splitext(path)[0] + ".pdf"
-        else:
-            return None
+        return base + ".pdf"
 
     def get_log_path(self):
-        location = self.get_location()
-        if location is None:
+        base = self.get_root_base()
+        if base is None:
             return None
-        path = location.get_path()
-        if path:
-            return os.path.splitext(path)[0] + ".log"
-        else:
-            return None
+        return base + ".log"
         
     def get_tex_path(self):
         location = self.get_location()
@@ -58,5 +50,14 @@ class TexFile(GtkSource.File):
         return self.get_location()
 
     def get_root_path(self):
-        return self.get_location().get_path()
+        root = self.get_root()
+        if root is None:
+            return None
+        return root.get_path()
+
+    def get_root_base(self):
+        path = self.get_root_path()
+        if path is None:
+            return None
+        return os.path.splitext(path)[0]
         
