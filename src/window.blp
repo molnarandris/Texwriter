@@ -29,6 +29,19 @@ template TexwriterWindow {
           title: "No document to display";
           description: "Start or Open a document";
           icon-name: "document-open";
+          child: Box {
+            orientation: horizontal;
+            halign: center;
+            spacing: 10;
+            Button {
+              label: "Start a new file";
+              action-name: "win.new-tab";
+            }
+            Button {
+              label: "Open an existing file";
+              action-name: "win.open";
+            }
+          };
         }
       };
     }
