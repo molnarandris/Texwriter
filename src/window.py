@@ -96,12 +96,15 @@ class TexwriterWindow(Adw.ApplicationWindow):
         self.old_tab_page = tab_page
         if tab_page.file is None:
             self.pdf_stack.set_visible_child_name("empty")
+            self.btn_stack.set_visible(False)
             return
         path = tab_page.file.get_pdf_path()
         if path is None:
             self.pdf_stack.set_visible_child_name("empty")
+            self.btn_stack.set_visible(False)
         else:
             self.pdf_stack.set_visible_child_name(path)
+            self.btn_stack.set_visible(True)
 
     def set_pg_icon(self, b, pg):
         ''' Sets the icon of a given tab page
@@ -187,6 +190,7 @@ class TexwriterWindow(Adw.ApplicationWindow):
             child.load_pdf(path)
             self.pdf_stack.add_named(child, path)
         self.pdf_stack.set_visible_child(child)
+        self.btn_stack.set_visible(True)
 
         #self.pdfview.load(file.get_pdf_path())
 
