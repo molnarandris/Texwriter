@@ -130,8 +130,7 @@ class TexwriterWindow(Adw.ApplicationWindow):
         flags = GObject.BindingFlags.DEFAULT | GObject.BindingFlags.SYNC_CREATE
         src.bind_property("title", tab_page, "title", flags)
         src.connect("notify::modified", lambda *_: self.set_pg_icon(src.modified, tab_page))
-        if src.file is None:
-            self.pdf_stack.set_visible_child_name("empty")
+        self.pdf_stack.set_visible_child_name("empty")
         return tab_page
 
     def on_close_tab(self, widget, _):
@@ -146,6 +145,19 @@ class TexwriterWindow(Adw.ApplicationWindow):
             if pg.get_child().file and path == pg.get_child().file.get_tex_path():
                 return pg
         return None
+
+    def goto_tex(self, path, line, context, offset):
+        pg = self.get_tab_for_path(path)
+        if pg is None:
+            pg = self.create_new_tab()
+            editor_page = pg.get_child()
+            editor_page.load(path, lambda: self.goto_tex(path, line, context, offset))
+        else:
+            editor_page = pg.get_child()
+        self.tab_view.set_selected_page(pg)
+        editor_page.goto(line,context,offset)
+
+
 
 
     ############################################################################

@@ -45,5 +45,9 @@ class ViewerPage(Gtk.Widget):
         self.main_stack.set_visible_child_name("errorview")
         
     def error_row_activated(self, row):
-        print("Row activated")
+        path = self.pdfviewer.path[:-3]+ "tex"
+        context = row.data[2]
+        if context.startswith("..."):
+            context = context[3:]
+        self.get_root().goto_tex(path, row.data[1], context, -1)
         

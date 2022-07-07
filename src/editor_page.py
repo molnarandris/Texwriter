@@ -140,15 +140,18 @@ class EditorPage(Gtk.Widget):
         begin_it = buffer.get_iter_at_line_offset(line, 0)[1]
         limit_it = buffer.get_iter_at_line_offset(line+1, 0)[1]
         flag = Gtk.TextSearchFlags.TEXT_ONLY
-        ok, start_it, end_it = begin_it.forward_search(context, flag, limit_it)
-        if ok:
+        result = begin_it.forward_search(context, flag, limit_it)
+        if result:
+            start_it, end_it = result
             if offset >= 0:
-                it = start_it.forward_chars(offset)
+                start_it.forward_chars(offset)
+                it = start_it
             else:
-                it = end_it.backward_chars(-offset-1)
+                end_it.backward_chars(-offset-1)
+                it = end_it
         else:
             it = begin_it
         self.sourceview.scroll_to_iter(it, 0.3, False, 0, 0)
         buffer.place_cursor(it)
-        self.sourceview.sourceview.grab_focus()
+        self.sourceview.grab_focus()
 
