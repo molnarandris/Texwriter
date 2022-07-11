@@ -155,3 +155,4 @@ class EditorPage(Gtk.Widget):
         buffer.place_cursor(it)
         self.sourceview.grab_focus()
 
+

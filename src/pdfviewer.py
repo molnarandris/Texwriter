@@ -86,7 +86,6 @@ class PdfViewer(Gtk.Widget):
         result = re.search("Line:(.*)", sender.stdout)
         line = int(result.group(1))
         self.emit("synctex-bck", line)
-        print(sender.stdout)
 
     # Far from perfect, but more or less works. Should not render right at zoom.
     def on_scroll(self, controller, dx, dy):

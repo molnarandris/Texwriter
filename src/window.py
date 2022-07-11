@@ -18,7 +18,6 @@
 import os, re, gi
 gi.require_version('GtkSource', '5')
 from gi.repository import Gtk, GObject, GtkSource, Gio, GLib, Gdk, Adw
-from .utilities import ProcessRunner
 from .editor_page import EditorPage
 from .viewer_page import ViewerPage
 from .texfile import TexFile
@@ -227,24 +226,10 @@ class TexwriterWindow(Adw.ApplicationWindow):
     ############################################################################
     # Compilation
 
-    def on_compile_finished(self, proc, result, data):
-        print("Compile finished")
-        self.to_compile = False
-        tab_page = data
-        path = tab_page.get_child().file.get_pdf_path()
-        viewer_page = self.pdf_stack.get_child_by_name(path)
-        if viewer_page is None:
-            viewer_page = ViewerPage()
-            self.pdf_stack.add_named(viewer_page, path)
-        if not proc.get_successful():
-            toast = Adw.Toast.new("Compile failed")
-        else:
-            toast = Adw.Toast.new("Compile succeeded")
-            viewer_page.load_pdf(path)
-        path = tab_page.get_child().file.get_log_path()
-        viewer_page.load_log(path)
-        toast.set_timeout(1)
-        self.toast_overlay.add_toast(toast)
+    def on_compile_action(self, widget, _):
+        self.btn_stack.set_visible_child_name("cancel")
+        self.compile()
+
 
     def compile(self, save = True):
         tab_page = self.tab_view.get_selected_page()
@@ -269,9 +254,52 @@ class TexwriterWindow(Adw.ApplicationWindow):
         proc = Gio.Subprocess.new(cmd, flags)
         proc.communicate_utf8_async(None, None, self.on_compile_finished, tab_page)
 
-    def on_compile_action(self, widget, _):
-        self.btn_stack.set_visible_child_name("cancel")
-        self.compile()
+    def on_compile_finished(self, proc, result, data):
+        self.to_compile = False
+        tab_page = data
+        path = tab_page.get_child().file.get_pdf_path()
+        viewer_page = self.pdf_stack.get_child_by_name(path)
+        if viewer_page is None:
+            viewer_page = ViewerPage()
+            self.pdf_stack.add_named(viewer_page, path)
+        if not proc.get_successful():
+            toast = Adw.Toast.new("Compile failed")
+        else:
+            toast = Adw.Toast.new("Compile succeeded")
+            viewer_page.load_pdf(path)
+        path = tab_page.get_child().file.get_log_path()
+        viewer_page.load_log(path)
+        toast.set_timeout(1)
+        self.toast_overlay.add_toast(toast)
+
+
+    def synctex_fwd(self, sender, _):
+        buf = self.sourceview.get_buffer()
+        it = buf.get_iter_at_mark(buf.get_insert())
+        path = self.docmanager.file.get_location().get_path()
+        pos = str(it.get_line()) + ":" + str(it.get_line_offset()) + ":" + path
+        path = os.path.splitext(path)[0] + '.pdf'
+        cmd = ['flatpak-spawn', '--host', 'synctex', 'view', '-i', pos, '-o', path]
+        flags = Gio.SubprocessFlags.STDOUT_SILENCE | Gio.SubprocessFlags.STDERR_SILENCE
+        proc = Gio.Subprocess.new(cmd, flags)
+        proc.communicate_utf8_async(None, None, self.on_synctex_finished, None)
+
+    def on_synctex_finished(sender):
+        result = re.search("Page:(.*)", sender.stdout)
+        page = int(result.group(1))
+        result = re.search("x:(.*)", sender.stdout)
+        x = float(result.group(1))
+        result = re.search("y:(.*)", sender.stdout)
+        y = float(result.group(1))
+        result = re.search("h:(.*)", sender.stdout)
+        h = float(result.group(1))
+        result = re.search("v:(.*)", sender.stdout)
+        v = float(result.group(1))
+        result = re.search("H:(.*)", sender.stdout)
+        H = float(result.group(1))
+        result = re.search("W:(.*)", sender.stdout)
+        W = float(result.group(1))
+        self.pdfview.synctex_fwd(page,x,y,h,v,H,W)
 
     ############################################################################
     # Saving:
@@ -283,7 +311,6 @@ class TexwriterWindow(Adw.ApplicationWindow):
         src.save(self.on_save_finished)
 
     def on_save_finished(self):
-        print("save finished")
         if self.to_compile:
             self.compile(save = False)
 
