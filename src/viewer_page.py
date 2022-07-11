@@ -9,6 +9,10 @@ class ViewerPage(Gtk.Widget):
     pdfviewer     = Gtk.Template.Child()
     main_stack    = Gtk.Template.Child()
     errorlist     = Gtk.Template.Child()
+    warninglist   = Gtk.Template.Child()
+    badboxlist    = Gtk.Template.Child()
+    warning_label = Gtk.Template.Child()
+    badbox_label  = Gtk.Template.Child()
 
     def __init__(self):
         super().__init__()
@@ -16,25 +20,21 @@ class ViewerPage(Gtk.Widget):
         layout = Gtk.BinLayout()
         self.set_layout_manager(layout)
         self.logprocessor = LogProcessor()
-        self.logprocessor.connect("finished", self.load_error_finish)
 
     def load_pdf(self, path):
         self.pdfviewer.load(path)
         self.main_stack.set_visible_child_name("pdfview")
 
-    def clear_error_list(self):
-        c = self.errorlist.get_first_child()
-        while c:
-            self.errorlist.remove(c)
-            c = self.errorlist.get_first_child()
-
-
-    def load_error(self, path):
-        self.clear_error_list()
+    def load_log(self, path):
+        for lst in [self.errorlist, self.warninglist, self.badboxlist]:
+            c = lst.get_first_child()
+            while c:
+                lst.remove(c)
+                c = lst.get_first_child()
         self.logprocessor.set_log_path(path)
-        self.logprocessor.process()
+        self.logprocessor.process(self.load_log_finish)
 
-    def load_error_finish(self, sender):
+    def load_log_finish(self):
         for e in self.logprocessor.error_list:
             row = Adw.ActionRow.new()
             row.set_activatable(True)
@@ -42,7 +42,35 @@ class ViewerPage(Gtk.Widget):
             row.set_title(f"{e[0]}: \"{e[2]}\" on line {e[1]}")
             self.errorlist.append(row)
             row.connect("activated", self.error_row_activated)
-        self.main_stack.set_visible_child_name("errorview")
+        for e in self.logprocessor.warning_list:
+            row = Adw.ActionRow.new()
+            row.set_activatable(True)
+            row.data = e
+            row.set_title(f"{e[0]}: \"{e[2]}\" on line {e[1]}")
+            self.warninglist.append(row)
+            row.connect("activated", self.error_row_activated)
+        for e in self.logprocessor.badbox_list:
+            row = Adw.ActionRow.new()
+            row.set_activatable(True)
+            row.data = e
+            row.set_title(f"{e[0]}: \"{e[2]}\" on line {e[1]}")
+            self.badboxlist.append(row)
+            row.connect("activated", self.error_row_activated)
+
+        if self.logprocessor.error_list:
+            self.main_stack.set_visible_child_name("errorview")
+        if self.logprocessor.warning_list:
+            self.warning_label.set_visible(True)
+            self.warninglist.set_visible(True)
+        else:
+            self.warning_label.set_visible(False)
+            self.warninglist.set_visible(False)
+        if self.logprocessor.badbox_list:
+            self.badbox_label.set_visible(True)
+            self.badboxlist.set_visible(True)
+        else:
+            self.badbox_label.set_visible(False)
+            self.badboxlist.set_visible(False)
         
     def error_row_activated(self, row):
         path = self.pdfviewer.path[:-3]+ "tex"

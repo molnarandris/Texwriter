@@ -79,6 +79,8 @@ template TexwriterWindow {
           Box {
             orientation: vertical;
             Adw.HeaderBar{
+              [start]
+              StackSwitcher pdf_log_switch {}
               [end]
               MenuButton {
                 icon-name: "open-menu-symbolic";

@@ -5,25 +5,36 @@ using Adw 1;
 template ViewerPage: Widget{
   Gtk.Stack main_stack {
   	StackPage {
+  	  title: "Pdf";
   	  name: "pdfview";
   	  child: .PdfViewer pdfviewer {};
   	}
   	StackPage {
+  	  title: "Log";
   	  name: "logview";
   	  child: Gtk.Box{
   	    orientation: vertical;
   	    vexpand: true;
-  	    Label {
+  	    margin-top: 10;
+  	    margin-start: 10;
+  	    margin-end: 10;
+  	    Label warning_label {
+          styles ["title-2"]
   	      label: "The following warnings were found:";
+  	      margin-bottom: 10;
   	    }
         Gtk.ListBox warninglist {
           styles ["boxed-list"]
+  	      margin-bottom: 10;
         }
-  	    Label {
+  	    Label badbox_label {
+          styles ["title-2"]
   	      label: "The following badboxes were found:";
+  	      margin-bottom: 10;
   	    }
         Gtk.ListBox badboxlist {
           styles ["boxed-list"]
+  	      margin-bottom: 10;
         }
   	  };
     }

@@ -27,12 +27,13 @@ from .texfile import TexFile
 class TexwriterWindow(Adw.ApplicationWindow):
     __gtype_name__ = 'TexwriterWindow'
 
-    btn_stack     = Gtk.Template.Child()
-    toast_overlay = Gtk.Template.Child()
-    main_stack    = Gtk.Template.Child()
-    tab_view      = Gtk.Template.Child()
-    paned         = Gtk.Template.Child()
-    pdf_stack     = Gtk.Template.Child()
+    btn_stack      = Gtk.Template.Child()
+    toast_overlay  = Gtk.Template.Child()
+    main_stack     = Gtk.Template.Child()
+    tab_view       = Gtk.Template.Child()
+    paned          = Gtk.Template.Child()
+    pdf_stack      = Gtk.Template.Child()
+    pdf_log_switch = Gtk.Template.Child()
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -98,14 +99,18 @@ class TexwriterWindow(Adw.ApplicationWindow):
         if tab_page.file is None:
             self.pdf_stack.set_visible_child_name("empty")
             self.btn_stack.set_visible(False)
+            self.pdf_log_switch.set_visible(False)
             return
         path = tab_page.file.get_pdf_path()
         if path is None:
             self.pdf_stack.set_visible_child_name("empty")
             self.btn_stack.set_visible(False)
+            self.pdf_log_switch.set_visible(False)
         else:
             self.pdf_stack.set_visible_child_name(path)
             self.btn_stack.set_visible(True)
+            self.pdf_log_switch.set_visible(True)
+            self.pdf_log_switch.set_stack(self.pdf_stack.get_visible_child().main_stack)
 
     def set_pg_icon(self, b, pg):
         ''' Sets the icon of a given tab page
@@ -216,8 +221,8 @@ class TexwriterWindow(Adw.ApplicationWindow):
             self.pdf_stack.add_named(child, path)
         self.pdf_stack.set_visible_child(child)
         self.btn_stack.set_visible(True)
-
-        #self.pdfview.load(file.get_pdf_path())
+        self.pdf_log_switch.set_stack(self.pdf_stack.get_visible_child().main_stack)
+        self.pdf_log_switch.set_visible(True)
 
     ############################################################################
     # Compilation
@@ -232,13 +237,12 @@ class TexwriterWindow(Adw.ApplicationWindow):
             viewer_page = ViewerPage()
             self.pdf_stack.add_named(viewer_page, path)
         if not proc.get_successful():
-            print("Compile failed")
             toast = Adw.Toast.new("Compile failed")
-            path = tab_page.get_child().file.get_log_path()
-            viewer_page.load_error(path)
         else:
             toast = Adw.Toast.new("Compile succeeded")
             viewer_page.load_pdf(path)
+        path = tab_page.get_child().file.get_log_path()
+        viewer_page.load_log(path)
         toast.set_timeout(1)
         self.toast_overlay.add_toast(toast)
 
@@ -261,9 +265,9 @@ class TexwriterWindow(Adw.ApplicationWindow):
         directory = file.get_dir()
         cmd = ['flatpak-spawn', '--host', 'latexmk', '-synctex=1', '-interaction=nonstopmode',
                '-pdf', "-g", "--output-directory="+ directory, path]
-        proc = Gio.Subprocess.new(cmd, Gio.SubprocessFlags.NONE)
+        flags = Gio.SubprocessFlags.STDOUT_SILENCE | Gio.SubprocessFlags.STDERR_SILENCE
+        proc = Gio.Subprocess.new(cmd, flags)
         proc.communicate_utf8_async(None, None, self.on_compile_finished, tab_page)
-        print("Compiling")
 
     def on_compile_action(self, widget, _):
         self.btn_stack.set_visible_child_name("cancel")
