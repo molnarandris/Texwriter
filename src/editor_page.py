@@ -1,3 +1,4 @@
+import re
 import gi
 gi.require_version('GtkSource', '5')
 from gi.repository import Gtk, GtkSource, GObject, GLib, Gio
@@ -155,4 +156,27 @@ class EditorPage(Gtk.Widget):
         buffer.place_cursor(it)
         self.sourceview.grab_focus()
 
+    def synctex_fwd(self, callback):
+        buffer = self.sourceview.get_buffer()
+        it = buffer.get_iter_at_mark(buffer.get_insert())
+        path = self.file.get_tex_path()
+        pos = str(it.get_line()) + ":" + str(it.get_line_offset()) + ":" + path
+        path = self.file.get_pdf_path()
+        cmd = ['flatpak-spawn', '--host', 'synctex', 'view', '-i', pos, '-o', path]
+        flags = Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_SILENCE
+        proc = Gio.Subprocess.new(cmd, flags)
+        proc.communicate_utf8_async(None, None, self.on_synctex_finished, callback)
+
+    def on_synctex_finished(self, proc, result, callback):
+        sync = dict()
+        success, stdout, stderr = proc.communicate_utf8_finish(result)
+        sync['page'] = int(re.search("Page:(.*)", stdout).group(1))
+        sync['x'] = float(re.search("x:(.*)", stdout).group(1))
+        sync['y'] = float(re.search("y:(.*)", stdout).group(1))
+        sync['h'] = float(re.search("h:(.*)", stdout).group(1))
+        sync['v'] = float(re.search("v:(.*)", stdout).group(1))
+        sync['H'] = float(re.search("H:(.*)", stdout).group(1))
+        sync['W'] = float(re.search("W:(.*)", stdout).group(1))
+
+        callback(sync)
 

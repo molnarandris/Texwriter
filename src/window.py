@@ -55,7 +55,7 @@ class TexwriterWindow(Adw.ApplicationWindow):
             ('close', self.on_close_tab, ['<primary>w']),
             ('save', self.on_save_action, ['<primary>s']),
             ('compile', self.on_compile_action, ['F5']),
-            #('synctex-fwd', self.synctex_fwd, ['F7']),
+            ('synctex-fwd', self.on_synctex_action, ['F7']),
             ('cancel', self.on_cancel_action, []),
             ('new-tab', lambda *_: self.create_new_tab(), []),
         ]
@@ -216,7 +216,8 @@ class TexwriterWindow(Adw.ApplicationWindow):
         child = self.pdf_stack.get_child_by_name(path)
         if child is None:
             child = ViewerPage()
-            child.load_pdf(path)
+            child.set_file(file)
+            child.load_pdf()
             self.pdf_stack.add_named(child, path)
         self.pdf_stack.set_visible_child(child)
         self.btn_stack.set_visible(True)
@@ -254,52 +255,43 @@ class TexwriterWindow(Adw.ApplicationWindow):
         proc = Gio.Subprocess.new(cmd, flags)
         proc.communicate_utf8_async(None, None, self.on_compile_finished, tab_page)
 
-    def on_compile_finished(self, proc, result, data):
+    def on_compile_finished(self, proc, result, tab_page):
         self.to_compile = False
-        tab_page = data
-        path = tab_page.get_child().file.get_pdf_path()
+        file = tab_page.get_child().file
+        path = file.get_pdf_path()
         viewer_page = self.pdf_stack.get_child_by_name(path)
         if viewer_page is None:
             viewer_page = ViewerPage()
+            viewer_page.set_file(file)
             self.pdf_stack.add_named(viewer_page, path)
         if not proc.get_successful():
             toast = Adw.Toast.new("Compile failed")
         else:
             toast = Adw.Toast.new("Compile succeeded")
-            viewer_page.load_pdf(path)
+            viewer_page.load_pdf()
         path = tab_page.get_child().file.get_log_path()
-        viewer_page.load_log(path)
+        viewer_page.load_log()
         toast.set_timeout(1)
         self.toast_overlay.add_toast(toast)
 
 
-    def synctex_fwd(self, sender, _):
-        buf = self.sourceview.get_buffer()
-        it = buf.get_iter_at_mark(buf.get_insert())
-        path = self.docmanager.file.get_location().get_path()
-        pos = str(it.get_line()) + ":" + str(it.get_line_offset()) + ":" + path
-        path = os.path.splitext(path)[0] + '.pdf'
-        cmd = ['flatpak-spawn', '--host', 'synctex', 'view', '-i', pos, '-o', path]
-        flags = Gio.SubprocessFlags.STDOUT_SILENCE | Gio.SubprocessFlags.STDERR_SILENCE
-        proc = Gio.Subprocess.new(cmd, flags)
-        proc.communicate_utf8_async(None, None, self.on_synctex_finished, None)
+    ############################################################################
+    # Synctex
 
-    def on_synctex_finished(sender):
-        result = re.search("Page:(.*)", sender.stdout)
-        page = int(result.group(1))
-        result = re.search("x:(.*)", sender.stdout)
-        x = float(result.group(1))
-        result = re.search("y:(.*)", sender.stdout)
-        y = float(result.group(1))
-        result = re.search("h:(.*)", sender.stdout)
-        h = float(result.group(1))
-        result = re.search("v:(.*)", sender.stdout)
-        v = float(result.group(1))
-        result = re.search("H:(.*)", sender.stdout)
-        H = float(result.group(1))
-        result = re.search("W:(.*)", sender.stdout)
-        W = float(result.group(1))
-        self.pdfview.synctex_fwd(page,x,y,h,v,H,W)
+    def on_synctex_action(self, sender, _):
+        tab_page = self.tab_view.get_selected_page()
+        if tab_page is None:
+            return
+        editor_page = tab_page.get_child()
+        file = editor_page.file
+        if file is None:
+            return
+        viewer_page = self.pdf_stack.get_child_by_name(file.get_pdf_path())
+        editor_page.synctex_fwd(lambda s: self.on_synctex_finished(viewer_page, s))
+
+    def on_synctex_finished(self, viewer_page, sync):
+        print(sync)
+        viewer_page.pdfviewer.synctex_fwd(sync)
 
     ############################################################################
     # Saving:

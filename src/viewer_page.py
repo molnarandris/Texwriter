@@ -21,17 +21,20 @@ class ViewerPage(Gtk.Widget):
         self.set_layout_manager(layout)
         self.logprocessor = LogProcessor()
 
-    def load_pdf(self, path):
-        self.pdfviewer.load(path)
+    def set_file(self, file):
+        self.logprocessor.set_log_path(file.get_log_path())
+        self.pdfviewer.set_path(file.get_pdf_path())
+
+    def load_pdf(self):
+        self.pdfviewer.load()
         self.main_stack.set_visible_child_name("pdfview")
 
-    def load_log(self, path):
+    def load_log(self):
         for lst in [self.errorlist, self.warninglist, self.badboxlist]:
             c = lst.get_first_child()
             while c:
                 lst.remove(c)
                 c = lst.get_first_child()
-        self.logprocessor.set_log_path(path)
         self.logprocessor.process(self.load_log_finish)
 
     def load_log_finish(self):

@@ -1,7 +1,6 @@
 import gi, re
 gi.require_version('Poppler', '0.18')
 from gi.repository import Gtk, GObject, Poppler, Graphene, Gdk, GLib
-from .utilities import ProcessRunner
 
 
 # Currently very stupid: rendering everythin at once and keeping all in memory
@@ -48,17 +47,20 @@ class PdfViewer(Gtk.Widget):
         self.x = x
         self.y = y
 
-    def load(self, path):
+    def set_path(self, path):
+        self.path = path
+
+    def load(self, callback = None):
         child = self.box.get_first_child()
         while child:
             self.box.remove(child)
             child = self.box.get_first_child()
 
-        if path is None:
+        if self.path is None:
             self.stack.set_visible_child_name("empty")
             return
-        self.path = path
-        uri = 'file://' + path
+
+        uri = 'file://' + self.path
         try:
             doc = Poppler.Document.new_from_file(uri)
         except:
@@ -74,7 +76,8 @@ class PdfViewer(Gtk.Widget):
             self.box.append(overlay)
         self.doc = doc
         self.stack.set_visible_child_name("pdf")
-        self.emit("loaded", True)
+        if callback:
+            callback()
 
     def on_synctex_back(self, sender, string):
         arg = string + ":" + self.path
@@ -107,7 +110,13 @@ class PdfViewer(Gtk.Widget):
         vadj.set_value((v + self.y) * s - self.y)
         return Gdk.EVENT_STOP
 
-    def synctex_fwd(self, page, x, y, h, v, H, W):
+    def synctex_fwd(self, sync):
+        W = sync["W"]
+        H = sync["H"]
+        v = sync["v"]
+        h = sync["h"]
+        y = sync["y"]
+        page = sync["page"]
         rect = SynctexRect(W,H,h,v,self.scale)
         overlay = self.get_page(page)
         overlay.add_overlay(rect)
@@ -117,7 +126,8 @@ class PdfViewer(Gtk.Widget):
         pg = self.get_page(page).get_child()
         point = Graphene.Point()
         point.init(0,y)
-        _,p = pg.compute_point(self,point)
+        _,p = pg.compute_point(self.box, point)
+        print(y, p.y)
         viewport = self.box.get_parent()
         vadj = viewport.get_vadjustment()
         vadj.set_value(p.y-vadj.get_page_size()*0.302)
