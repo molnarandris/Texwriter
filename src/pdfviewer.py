@@ -127,7 +127,6 @@ class PdfViewer(Gtk.Widget):
         point = Graphene.Point()
         point.init(0,y)
         _,p = pg.compute_point(self.box, point)
-        print(y, p.y)
         viewport = self.box.get_parent()
         vadj = viewport.get_vadjustment()
         vadj.set_value(p.y-vadj.get_page_size()*0.302)

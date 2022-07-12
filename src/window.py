@@ -290,8 +290,8 @@ class TexwriterWindow(Adw.ApplicationWindow):
         editor_page.synctex_fwd(lambda s: self.on_synctex_finished(viewer_page, s))
 
     def on_synctex_finished(self, viewer_page, sync):
-        print(sync)
         viewer_page.pdfviewer.synctex_fwd(sync)
+        viewer_page.main_stack.set_visible_child_name("pdfview")
 
     ############################################################################
     # Saving:
