@@ -253,9 +253,15 @@ class TexwriterWindow(Adw.ApplicationWindow):
                '-pdf', "-g", "--output-directory="+ directory, path]
         flags = Gio.SubprocessFlags.STDOUT_SILENCE | Gio.SubprocessFlags.STDERR_SILENCE
         proc = Gio.Subprocess.new(cmd, flags)
-        proc.communicate_utf8_async(None, None, self.on_compile_finished, tab_page)
+        proc.wait_async(None, self.on_compile_finished, tab_page)
 
     def on_compile_finished(self, proc, result, tab_page):
+        try:
+            proc.wait_finish(result)
+        except:
+            print("can't run latexmk")
+            return
+
         self.to_compile = False
         file = tab_page.get_child().file
         path = file.get_pdf_path()
