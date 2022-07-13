@@ -213,13 +213,13 @@ class TexwriterWindow(Adw.ApplicationWindow):
         if path is None:
             self.pdf_stack.set_visible_child_name("empty")
             return
-        child = self.pdf_stack.get_child_by_name(path)
-        if child is None:
-            child = ViewerPage()
-            child.set_file(file)
-            child.load_pdf()
-            self.pdf_stack.add_named(child, path)
-        self.pdf_stack.set_visible_child(child)
+        viewer_page = self.pdf_stack.get_child_by_name(path)
+        if viewer_page is None:
+            viewer_page = ViewerPage()
+            viewer_page.set_file(file)
+            viewer_page.load_pdf()
+            self.pdf_stack.add_named(viewer_page, path)
+        self.pdf_stack.set_visible_child(viewer_page)
         self.btn_stack.set_visible(True)
         self.pdf_log_switch.set_stack(self.pdf_stack.get_visible_child().main_stack)
         self.pdf_log_switch.set_visible(True)
