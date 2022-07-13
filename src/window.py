@@ -218,6 +218,7 @@ class TexwriterWindow(Adw.ApplicationWindow):
             viewer_page = ViewerPage()
             viewer_page.set_file(file)
             viewer_page.load_pdf()
+            viewer_page.load_log()
             self.pdf_stack.add_named(viewer_page, path)
         self.pdf_stack.set_visible_child(viewer_page)
         self.btn_stack.set_visible(True)
