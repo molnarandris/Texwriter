@@ -14,6 +14,9 @@ class ViewerPage(Gtk.Widget):
     warning_label = Gtk.Template.Child()
     badbox_label  = Gtk.Template.Child()
 
+    has_error = GObject.Property(type=bool, default=False)
+    busy = GObject.Property(type=bool, default=False)
+
     def __init__(self):
         super().__init__()
 
@@ -62,6 +65,9 @@ class ViewerPage(Gtk.Widget):
 
         if self.logprocessor.error_list:
             self.main_stack.set_visible_child_name("errorview")
+            self.set_property("has_error", True)
+        else:
+            self.set_property("has_error", False)
         if self.logprocessor.warning_list:
             self.warning_label.set_visible(True)
             self.warninglist.set_visible(True)

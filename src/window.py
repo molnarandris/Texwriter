@@ -65,9 +65,11 @@ class TexwriterWindow(Adw.ApplicationWindow):
 
         self.tab_view.connect("notify::selected-page", lambda obj, _: self.selected_tab_changed(obj, obj.get_selected_page()))
         self.tab_view.connect("notify::n-pages", lambda obj,_ : self.on_n_tab_change(obj,obj.get_n_pages()))
+        self.pdf_stack.connect("notify::visible-child", lambda obj, _: self.viewer_tab_changed())
 
         self.btn_stack_handler_id = None
-        self.old_tab_page = None
+        self.old_viewer_page = None
+        self.stack_switch_binding = None
 
 ################################################################################
 # Tab management
@@ -89,27 +91,32 @@ class TexwriterWindow(Adw.ApplicationWindow):
         # we need to update the compile button according to busyness of compiler
         if pg is None:
             return
-        tab_page = pg.get_child()
-        if self.old_tab_page and self.btn_stack_handler_id:
-            self.old_tab_page.disconnect(self.btn_stack_handler_id)
-
-        self.btn_stack_handler_id = tab_page.connect("notify::busy", lambda obj,_: self.btn_stack.set_visible_child_name("cancel") if obj.get_property("busy") else self.btn_stack.set_visible_child_name("compile"))
-        self.old_tab_page = tab_page
-        if tab_page.file is None:
+        editor_page = pg.get_child()
+        if editor_page.file is None:
             self.pdf_stack.set_visible_child_name("empty")
+            return
+        path = editor_page.file.get_pdf_path()
+        if path is None:
+            self.pdf_stack.set_visible_child_name("empty")
+            return
+        viewer_page = self.pdf_stack.get_child_by_name(path)
+        self.pdf_stack.set_visible_child(viewer_page)
+        self.btn_stack.set_visible(True)
+
+    def viewer_tab_changed(self):
+        if self.old_viewer_page and self.btn_stack_handler_id:
+            self.old_viewer_page.disconnect(self.btn_stack_handler_id)
+        if self.stack_switch_binding:
+            self.stack_switch_binding.unbind()
+        viewer_page = self.pdf_stack.get_visible_child()
+        if self.pdf_stack.get_visible_child_name() == "empty":
             self.btn_stack.set_visible(False)
             self.pdf_log_switch.set_visible(False)
             return
-        path = tab_page.file.get_pdf_path()
-        if path is None:
-            self.pdf_stack.set_visible_child_name("empty")
-            self.btn_stack.set_visible(False)
-            self.pdf_log_switch.set_visible(False)
-        else:
-            self.pdf_stack.set_visible_child_name(path)
-            self.btn_stack.set_visible(True)
-            self.pdf_log_switch.set_visible(True)
-            self.pdf_log_switch.set_stack(self.pdf_stack.get_visible_child().main_stack)
+        self.pdf_log_switch.set_stack(viewer_page.main_stack)
+        self.btn_stack_handler_id = viewer_page.connect("notify::busy", lambda obj,_: self.btn_stack.set_visible_child_name("cancel") if obj.get_property("busy") else self.btn_stack.set_visible_child_name("compile"))
+        flags = GObject.BindingFlags.INVERT_BOOLEAN | GObject.BindingFlags.SYNC_CREATE | GObject.BindingFlags.DEFAULT
+        self.stack_switch_binding_id = viewer_page.bind_property("has_error", self.pdf_log_switch, "visible", flags)
 
     def set_pg_icon(self, b, pg):
         ''' Sets the icon of a given tab page
