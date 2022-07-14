@@ -270,7 +270,8 @@ class TexwriterWindow(Adw.ApplicationWindow):
             print("can't run latexmk")
             return
 
-        file = tab_page.get_child().file
+        editor_page = tab_page.get_child()
+        file = editor_page.file
         path = file.get_pdf_path()
         viewer_page = self.pdf_stack.get_child_by_name(path)
         if viewer_page is None:
@@ -283,6 +284,7 @@ class TexwriterWindow(Adw.ApplicationWindow):
         else:
             toast = Adw.Toast.new("Compile succeeded")
             viewer_page.load_pdf()
+            self.synctex_fwd(editor_page)
         path = tab_page.get_child().file.get_log_path()
         viewer_page.load_log()
         toast.set_timeout(1)
@@ -297,13 +299,16 @@ class TexwriterWindow(Adw.ApplicationWindow):
         if tab_page is None:
             return
         editor_page = tab_page.get_child()
+        self.synctex_fwd(editor_page)
+
+    def synctex_fwd(self, editor_page):
         file = editor_page.file
         if file is None:
             return
         viewer_page = self.pdf_stack.get_child_by_name(file.get_pdf_path())
-        editor_page.synctex_fwd(lambda s: self.on_synctex_finished(viewer_page, s))
+        editor_page.synctex_fwd(lambda s: self.synctex_fwd_finish(viewer_page, s))
 
-    def on_synctex_finished(self, viewer_page, sync):
+    def synctex_fwd_finish(self, viewer_page, sync):
         viewer_page.pdfviewer.synctex_fwd(sync)
         viewer_page.main_stack.set_visible_child_name("pdfview")
 
