@@ -248,13 +248,13 @@ class TexwriterWindow(Adw.ApplicationWindow):
         file = editor_page.file
         if file is None:
             return
-        #self.set_property("busy", True)
+        path = editor_page.file.get_pdf_path()
+        viewer_page = self.pdf_stack.get_child_by_name(path)
+        if viewer_page:
+            viewer_page.set_property("busy", True)
         if save and editor_page.modified:
-            self.to_compile = True
             editor_page.save(lambda: self.compile(False))
             return  # we have to wait for the saving to finish
-        self.to_compile = False
-        #editor_page.clear_tags()
         path = file.get_root_path()
         directory = file.get_dir()
         cmd = ['flatpak-spawn', '--host', 'latexmk', '-synctex=1', '-interaction=nonstopmode',
@@ -270,7 +270,6 @@ class TexwriterWindow(Adw.ApplicationWindow):
             print("can't run latexmk")
             return
 
-        self.to_compile = False
         file = tab_page.get_child().file
         path = file.get_pdf_path()
         viewer_page = self.pdf_stack.get_child_by_name(path)
@@ -278,6 +277,7 @@ class TexwriterWindow(Adw.ApplicationWindow):
             viewer_page = ViewerPage()
             viewer_page.set_file(file)
             self.pdf_stack.add_named(viewer_page, path)
+        viewer_page.set_property("busy", False)
         if not proc.get_successful():
             toast = Adw.Toast.new("Compile failed")
         else:
@@ -313,12 +313,8 @@ class TexwriterWindow(Adw.ApplicationWindow):
         pg = self.tab_view.get_selected_page()
         if pg is None:
             return
-        src = pg.get_child()
-        src.save(self.on_save_finished)
-
-    def on_save_finished(self):
-        if self.to_compile:
-            self.compile(save = False)
+        editor_page = pg.get_child()
+        editor_page.save()
 
     ############################################################################
 
