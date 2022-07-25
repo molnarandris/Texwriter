@@ -51,7 +51,8 @@ texwriter_sources = [
   'texfile.py',
   'logprocessor.py',
   'viewer_page.py',
-  'editor_page.py'
+  'editor_page.py',
+  'autocomplete.py',
 ]
 
 install_data(texwriter_sources, install_dir: moduledir)

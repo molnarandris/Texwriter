@@ -4,6 +4,7 @@ gi.require_version('GtkSource', '5')
 from gi.repository import Gtk, GtkSource, GObject, GLib, Gio
 from .latexbuffer import LatexBuffer
 from .texfile import TexFile
+from .autocomplete import AutocompletePopover
 
 @Gtk.Template(resource_path='/com/github/molnarandris/texwriter/editor_page.ui')
 class EditorPage(Gtk.Widget):
@@ -31,6 +32,7 @@ class EditorPage(Gtk.Widget):
         buffer.connect("changed", lambda _ : self.set_property("modified", True))
         self.file = None
         self.to_compile = False
+        self.autocomplete = AutocompletePopover(self)
 
     def load_finish_cb(self, loader, result, cb):
         success = loader.load_finish(result)
