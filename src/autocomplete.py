@@ -7,23 +7,44 @@ class AutocompletePopover(Gtk.Popover):
         super().__init__()
         self.set_parent(editor_page)
         self.editor_page = editor_page
+
+        #layout = Gtk.BinLayout()
+        #self.set_layout_manager(layout)
+
+        box = Gtk.Box.new(Gtk.Orientation.VERTICAL,10)
+        self.set_child(box)
+        text = Gtk.Text()
+        box.append(text)
+        #text.set_visible(False)
         label = Gtk.Label.new("Hello world")
-        self.set_child(label)
+        box.append(label)
+        label = Gtk.Label.new("Hello world")
+        box.append(label)
+        label = Gtk.Label.new("Hello world")
+        box.append(label)
         self.view = editor_page.sourceview
         self.set_position(Gtk.PositionType.BOTTOM)
-        self.set_autohide(False)
-        self.set_has_arrow(True)
+        self.set_autohide(True)
+        self.set_has_arrow(False)
+        self.set_offset(0,5)
+
+        text.get_buffer().connect("inserted-text", self.on_insert)
+        self.text = text
 
         eck = Gtk.EventControllerKey.new()
         self.view.add_controller(eck)
-        eck.connect("key-released", self.on_insert)
+        eck.connect("key-released", self.on_key_released)
 
-        self.active = False
+    def on_insert(self, entrybuffer, pos, string, len_):
+        #print("Hi", string)
+        pass
 
-    def on_insert(self, controller, keyval, keycode, modifier):
-        if (keyval is not Gdk.KEY_backslash) and not self.active:
-            return
+    def on_key_released(self, controller, keyval, keycode, modifier):
+        if keyval is Gdk.KEY_backslash:
+            self.update_position()
+            self.popup()
 
+    def update_position(self):
         buf = self.view.get_buffer()
         it = buf.get_iter_at_mark(buf.get_insert())
         buf_rect = self.view.get_iter_location(it)
@@ -33,12 +54,4 @@ class AutocompletePopover(Gtk.Popover):
         rect.width = buf_rect.width
         rect.height = buf_rect.height
         self.set_pointing_to(rect)
-
-        if (keyval is Gdk.KEY_backslash) and not self.active:
-            self.active = True
-            self.popup()
-
-        if self.active and keyval is Gdk.KEY_Escape:
-            self.active = False
-            self.popdown()
-
+        
