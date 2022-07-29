@@ -41,14 +41,15 @@ class EditorPage(Gtk.Widget):
             self.file = TexFile()
             self.file.set_location(loader.get_location())
             self.set_property("modified", False)
-            self.set_property("title", self.file.get_title())
         else:
             self.file = None
+            self.set_property("title", "New Document")
             print("Could not load file: " + path)
         cb(success, self.file)
         return success
 
     def load_file(self,file, cb):
+        self.set_property("title", file.get_title())
         buffer = self.sourceview.get_buffer()
         loader = GtkSource.FileLoader.new(buffer, file)
         loader.load_async(io_priority = GLib.PRIORITY_DEFAULT,
@@ -116,6 +117,13 @@ class EditorPage(Gtk.Widget):
         _, it = buf.get_iter_at_line_offset(line-1,0)
         buf.place_cursor(it)
         self.sourceview.scroll_to_iter(it,0,True, 0, 0.382)
+
+    def get_tex_path(self):
+        if self.file:
+            return self.file.get_tex_path()
+        else:
+            return None
+
 
     def get_pdf_path(self):
         if self.file:

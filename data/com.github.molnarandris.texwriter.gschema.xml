@@ -26,5 +26,10 @@
       <summary>Pane position</summary>
       <description>The position of the division</description>
     </key>
+	  <key name="opened-files" type="as">
+	    <default>[]</default>
+      <summary>Pane position</summary>
+      <description>The position of the division</description>
+	  </key>
 	</schema>
 </schemalist>

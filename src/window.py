@@ -71,6 +71,9 @@ class TexwriterWindow(Adw.ApplicationWindow):
         self.old_viewer_page = None
         self.stack_switch_binding = None
 
+        # Save opened files
+        self.connect("close-request", self.on_close)
+
 ################################################################################
 # Tab management
 
@@ -199,21 +202,25 @@ class TexwriterWindow(Adw.ApplicationWindow):
         self.open_dialog = dialog
 
     def on_open_response(self, dialog, response):
-        if response == Gtk.ResponseType.ACCEPT:
-            file = TexFile()
-            file.set_location(dialog.get_file())
-            path = file.get_tex_path()
-            pg = self.get_tab_for_path(path)
-            if pg:
-                self.tab_view.set_selected_page(pg)
-                return
-            pg = self.tab_view.get_selected_page() or self.create_new_tab()
-            src = pg.get_child()
-            if src.modified or src.title != "New Document":
-                pg = self.create_new_tab()
-                src = pg.get_child()
-            src.load_file(file, self.load_tex_response)
         self.open_dialog = None
+        if response != Gtk.ResponseType.ACCEPT:
+            return
+        file = TexFile()
+        file.set_location(dialog.get_file())
+        self.open_file(file)
+
+    def open_file(self, file):
+        path = file.get_tex_path()
+        tab_page = self.get_tab_for_path(path)
+        if tab_page:
+            self.tab_view.set_selected_page(tab_page)
+            return
+        tab_page = self.tab_view.get_selected_page() or self.create_new_tab()
+        editor_page = tab_page.get_child()
+        if editor_page.modified or editor_page.title != "New Document":
+            tab_page = self.create_new_tab()
+            editor_page = tab_page.get_child()
+        editor_page.load_file(file, self.load_tex_response)
 
     def load_tex_response(self,success, file):
         path = file.get_pdf_path()
@@ -323,6 +330,26 @@ class TexwriterWindow(Adw.ApplicationWindow):
 
     ############################################################################
 
+    def on_close(self, win):
+        files = []
+        for tab_page in self.tab_view.get_pages():
+            editor_page = tab_page.get_child()
+            path = editor_page.get_tex_path()
+            if path:
+                files.append(path)
+        # Save the files
+        settings = Gio.Settings.new("com.github.molnarandris.texwriter")
+        settings.set_strv("opened-files", files)
+
+    def restore_session(self):
+        settings = Gio.Settings.new("com.github.molnarandris.texwriter")
+        for path in settings.get_strv("opened-files"):
+            file = TexFile()
+            file.set_path(path)
+            self.open_file(file)
+
+
+    ############################################################################
     def on_cancel_action(self, widget, _):
         pass
 

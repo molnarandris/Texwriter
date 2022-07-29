@@ -50,6 +50,7 @@ class TexwriterApplication(Adw.Application):
         if not win:
             win = TexwriterWindow(application=self)
         win.present()
+        win.restore_session()
 
     def on_about_action(self, widget, _):
         """Callback for the app.about action."""
