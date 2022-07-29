@@ -1,5 +1,5 @@
 import gi
-from gi.repository import GObject, GtkSource
+from gi.repository import GObject, GtkSource, Gio
 import os
 
 """
@@ -12,6 +12,10 @@ class TexFile(GtkSource.File):
 
     def __init__(self):
         super().__init__()
+
+    def set_path(self,path):
+        f = Gio.File.new_for_path(path)
+        self.set_location(f)
 
     def get_title(self):
         location = self.get_location()
