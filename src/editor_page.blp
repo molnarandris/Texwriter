@@ -3,15 +3,30 @@ using GtkSource 5;
 
 
 template EditorPage: Widget{
-  Gtk.ScrolledWindow {
-    vexpand: true;
-    GtkSource.View sourceview {
-      wrap-mode: word;
-      highlight-current-line: true;
-      margin-top: 6;
-      margin-bottom: 6;
-      margin-start: 6;
-      margin-end: 6;
+  Gtk.Box{
+    orientation: vertical;
+    Gtk.InfoBar change_infobar{
+      message-type: warning;
+      visible: false;
+      Gtk.Label{
+        label: "The file has changed on the disk";
+      }
+      [action]
+      Gtk.Button{
+        label: "Discard changes and reload from disk";
+        clicked => on_discard_btn_clicked();
+      }
+    }
+    Gtk.ScrolledWindow {
+      vexpand: true;
+      GtkSource.View sourceview {
+        wrap-mode: word;
+        highlight-current-line: true;
+        margin-top: 6;
+        margin-bottom: 6;
+        margin-start: 6;
+        margin-end: 6;
+      }
     }
   }
 }
