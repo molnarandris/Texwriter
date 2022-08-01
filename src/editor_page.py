@@ -11,7 +11,8 @@ class EditorPage(Gtk.Widget):
 
     GObject.type_register(GtkSource.View)
 
-    sourceview    = Gtk.Template.Child()
+    sourceview     = Gtk.Template.Child()
+    change_infobar = Gtk.Template.Child()
 
     title = GObject.Property(type=str, default='New Document')
     modified = GObject.Property(type=bool, default=False)
@@ -36,20 +37,27 @@ class EditorPage(Gtk.Widget):
         success = loader.load_finish(result)
         path = loader.get_location().get_path()
         if success:
-            self.file = TexFile()
-            self.file.set_location(loader.get_location())
+            file = TexFile()
+            file.set_location(loader.get_location())
             self.set_property("modified", False)
+            file.connect("changed", self.on_file_changed)
+            self.set_property("title", file.get_title())
+            self.file = file
         else:
             self.file = None
             self.set_property("title", "New Document")
             print("Could not load file: " + path)
-        cb(success, self.file)
+        if cb:
+            cb(success, self.file)
         return success
 
-    def load_file(self,file, cb):
-        self.set_property("title", file.get_title())
+    def load_file(self, file, cb):
+        if self.file:
+            self.file.stop_monitor()
         buffer = self.sourceview.get_buffer()
-        loader = GtkSource.FileLoader.new(buffer, file)
+        f = GtkSource.File.new()
+        f.set_location(file)
+        loader = GtkSource.FileLoader.new(buffer, f)
         loader.load_async(io_priority = GLib.PRIORITY_DEFAULT,
                           callback    = self.load_finish_cb,
                           user_data   = cb)
@@ -81,6 +89,7 @@ class EditorPage(Gtk.Widget):
             self.save_dialog = dialog
         else:
             buffer = self.sourceview.get_buffer()
+            self.file.stop_monitor()
             saver = GtkSource.FileSaver.new(buffer, self.file)
             saver.save_async(io_priority = GLib.PRIORITY_DEFAULT,
                              callback = self.save_finish_cb,
@@ -103,6 +112,7 @@ class EditorPage(Gtk.Widget):
         if success:
             self.set_property("modified", False)
             self.emit("saved", True)
+            self.file.start_monitor()
         else:
             print("Could not save file: " + path)
             self.emit("saved", False)
@@ -187,4 +197,13 @@ class EditorPage(Gtk.Widget):
         sync['W'] = float(re.search("W:(.*)", stdout).group(1))
 
         callback(sync)
+
+    def on_file_changed(self, file):
+        self.change_infobar.set_visible(True)
+
+    @Gtk.Template.Callback()
+    def on_discard_btn_clicked(self, btn):
+        file = self.file.get_location()
+        self.change_infobar.set_visible(False)
+        self.load_file(file, None)
 

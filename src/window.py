@@ -205,12 +205,11 @@ class TexwriterWindow(Adw.ApplicationWindow):
         self.open_dialog = None
         if response != Gtk.ResponseType.ACCEPT:
             return
-        file = TexFile()
-        file.set_location(dialog.get_file())
+        file = Gio.File.new_for_path()
         self.open_file(file)
 
     def open_file(self, file):
-        path = file.get_tex_path()
+        path = file.get_path()
         tab_page = self.get_tab_for_path(path)
         if tab_page:
             self.tab_view.set_selected_page(tab_page)
@@ -344,8 +343,7 @@ class TexwriterWindow(Adw.ApplicationWindow):
     def restore_session(self):
         settings = Gio.Settings.new("com.github.molnarandris.texwriter")
         for path in settings.get_strv("opened-files"):
-            file = TexFile()
-            file.set_path(path)
+            file = Gio.File.new_for_path(path)
             self.open_file(file)
 
 
