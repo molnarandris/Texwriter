@@ -45,21 +45,21 @@ class ViewerPage(Gtk.Widget):
             row = Adw.ActionRow.new()
             row.set_activatable(True)
             row.data = e
-            row.set_title(f"{e[0]}: \"{e[2]}\" on line {e[1]}")
+            row.set_title(f"error")
             self.errorlist.append(row)
             row.connect("activated", self.error_row_activated)
         for e in self.logprocessor.warning_list:
             row = Adw.ActionRow.new()
             row.set_activatable(True)
             row.data = e
-            row.set_title(f"{e[0]}: \"{e[2]}\" on line {e[1]}")
+            row.set_title(f"warninf")
             self.warninglist.append(row)
             row.connect("activated", self.error_row_activated)
         for e in self.logprocessor.badbox_list:
             row = Adw.ActionRow.new()
             row.set_activatable(True)
             row.data = e
-            row.set_title(f"{e[0]}: \"{e[2]}\" on line {e[1]}")
+            row.set_title(f"badbox")
             self.badboxlist.append(row)
             row.connect("activated", self.error_row_activated)
 
