@@ -25,12 +25,29 @@ class AutocompletePopover(Gtk.Popover):
         self.set_has_arrow(False)
         self.set_offset(0,5)
 
-        eck = Gtk.EventControllerKey.new()
-        self.view.add_controller(eck)
-        eck.connect("key-released", self.on_key_released)
+        controller = Gtk.EventControllerKey.new()
+        self.view.add_controller(controller)
+        controller.connect("key-released", self.on_key_released)
+
+        controller = Gtk.GestureClick.new()
+        self.view.add_controller(controller)
+        controller.connect("pressed", self.on_view_click)
 
         buf = self.view.get_buffer()
         buf.connect("insert-text", self.on_insert)
+
+    def deactivate(self):
+        if not self.active:
+            return
+        self.active = False
+        self.string = ""
+        self.popdown()
+
+    def activate(self):
+        if self.active:
+            return
+        self.active = True
+        self.popup()
 
     def on_insert(self, buffer, it, string, len_):
         if not self.active:
@@ -40,14 +57,15 @@ class AutocompletePopover(Gtk.Popover):
 
     def on_key_released(self, controller, keyval, keycode, modifier):
         if keyval == Gdk.KEY_backslash:
-            self.popup()
-            self.active = True
+            self.activate()
         if keyval == Gdk.KEY_Escape:
-            self.active = False
-            self.string = ""
-            self.popdown()
+            self.deactivate()
         if self.active:
             self.update_position()
+
+    def on_view_click(self, controller, n_press, x, y):
+        if self.active:
+            self.deactivate()
 
     def update_position(self):
         buf = self.view.get_buffer()
