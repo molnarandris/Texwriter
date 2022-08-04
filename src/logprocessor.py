@@ -59,32 +59,6 @@ class LogProcessor(GObject.GObject):
         finally:
             callback()
 
-    def errors (self):
-        """
-        Returns true if there was an error during the compilation.
-        """
-        skipping = False
-        for line in self.lines:
-            if line.strip() == "":
-                skipping = False
-                continue
-            if skipping:
-                continue
-            m = re_badbox.match(line)
-            if m:
-                skipping = True
-                continue
-            if line[0] == "!":
-                # We check for the substring "pdfTeX warning" because pdfTeX
-                # sometimes issues warnings (like undefined references) in the
-                # form of errors...
-
-                if line.find("pdfTeX warning") == -1:
-                    return True
-        return False
-
-    #-- Information extraction {{{2
-
     def continued (self, line):
         """
         Check if a line in the log is continued on the next line. This is
